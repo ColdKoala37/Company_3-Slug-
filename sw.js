@@ -2,8 +2,13 @@
 // When there is internet it asks GitHub for the newest files first,
 // so an update you upload shows up the next time you open the app.
 
-const CACHE = 'town-map-v1';
-const FILES = ['./', 'index.html', 'manifest.json', 'map.webp', 'icon.png'];
+const CACHE = 'slug-v2';
+const FILES = [
+  './', 'index.html', 'manifest.json', 'icon.png',
+  'splash.webp', 'age.webp', 'map.webp', 'loading.webp', 'ring.webp',
+  'simon.webp', 'battle.webp', 'sudoku.webp',
+  'badge-simon.webp', 'badge-battle.webp', 'badge-garbage.webp'
+];
 
 self.addEventListener('install', event => {
   event.waitUntil(

@@ -3,22 +3,24 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>Town Map</title>
+  <title>Slug</title>
 
   <!-- How the app looks once it is on the iPhone Home Screen -->
-  <meta name="apple-mobile-web-app-title" content="Town Map">
+  <meta name="apple-mobile-web-app-title" content="Slug">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <meta name="theme-color" content="#ccfedf">
+  <meta name="theme-color" content="#ace3de">
   <meta name="color-scheme" content="light">
+  <meta name="robots" content="noindex">
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icon.png">
   <link rel="icon" type="image/png" href="icon.png">
 
   <style>
     :root {
-      --mint: #ccfedf;       /* the colour around the edge of the map */
-      --mint-deep: #b4f0cd;  /* around the app when it is opened on a computer */
+      --mint: #ccfedf;
+      --mint-deep: #b4f0cd;
       --ink: #1f5a46;
+      --round: ui-rounded, "SF Pro Rounded", "Arial Rounded MT Bold", "Nunito", system-ui, sans-serif;
     }
 
     html, body {
@@ -32,9 +34,23 @@
     body {
       position: fixed;
       inset: 0;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+      font-family: var(--round);
       color: var(--ink);
       -webkit-text-size-adjust: 100%;
+      -webkit-tap-highlight-color: transparent;
+      -webkit-user-select: none;
+      user-select: none;
+      -webkit-touch-callout: none;
+    }
+    button {
+      appearance: none;
+      border: 0;
+      padding: 0;
+      margin: 0;
+      background: none;
+      font: inherit;
+      color: inherit;
+      cursor: pointer;
       -webkit-tap-highlight-color: transparent;
     }
 
@@ -48,8 +64,73 @@
       background: var(--mint);
     }
 
-    /* The map is as tall as the screen and much wider than it,
-       so you swipe left and right to see the rest */
+    /* ---------- Screens ---------- */
+    .screen {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      visibility: hidden;
+      z-index: 0;
+    }
+    .screen.leaving { opacity: 1; visibility: visible; z-index: 1; }
+    .screen.active  { opacity: 1; visibility: visible; z-index: 2; animation: fade-in .28s ease both; }
+    @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+
+    /* Picture screens: each picture is centred at full width; the soft bands above and
+       below it are part of the image, so it fills any iPhone */
+    .picture {
+      background:
+        var(--img) center / 100% auto no-repeat,
+        linear-gradient(var(--top) 50%, var(--bottom) 50%);
+    }
+    /* The original 3:4 design area, where the buttons sit */
+    .stage {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 50%;
+      transform: translateY(-50%);
+      aspect-ratio: 1152 / 1537;
+      container-type: inline-size;
+    }
+    /* Tap areas, positioned in the design's own pixels (384 wide) */
+    .hot {
+      position: absolute;
+      left:   calc(var(--x) * 100cqw / 384);
+      top:    calc(var(--y) * 100cqw / 384);
+      width:  calc(var(--w) * 100cqw / 384);
+      height: calc(var(--h) * 100cqw / 384);
+      border-radius: calc(16 * 100cqw / 384);
+    }
+    .hot:active { background: rgb(255 255 255 / 0.18); }
+
+    /* Age picker: crisp labels on the four buttons */
+    .age-label {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: calc(69.5 * 100cqw / 384);
+      font-size: calc(10.5 * 100cqw / 384);
+      line-height: calc(15 * 100cqw / 384);
+      font-weight: 700;
+      color: #182a45;
+      text-align: center;
+      white-space: nowrap;
+    }
+
+    /* Loading: the ring of slugs turns slowly */
+    .ring {
+      position: absolute;
+      left:  calc(120.5 * 100cqw / 384);
+      top:   calc(164.33 * 100cqw / 384);
+      width: calc(144 * 100cqw / 384);
+      height: calc(144 * 100cqw / 384);
+      animation: spin 2.8s linear infinite;
+    }
+    .screen:not(.active) .ring { animation-play-state: paused; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ---------- Map ---------- */
     .map {
       position: absolute;
       inset: 0;
@@ -58,31 +139,90 @@
       overscroll-behavior: contain;
       touch-action: pan-x pan-y;
       scrollbar-width: none;
+      background: var(--mint);
     }
     .map::-webkit-scrollbar { display: none; }
-    .map img {
+    .world {
+      position: relative;
+      display: inline-block;
+      height: 100%;
+      vertical-align: top;
+      --u: 0.44px; /* one pixel of the full-size map; set from the real size in the script */
+    }
+    .world > img {
       display: block;
       height: 100%;
       width: auto;
       max-width: none;
-      -webkit-touch-callout: none; /* no "Save image" menu on a long press */
-      -webkit-user-select: none;
-      user-select: none;
       -webkit-user-drag: none;
     }
 
-    /* Shown when the phone is turned sideways (iPhones don't let web apps lock rotation) */
+    /* Game labels on the map, measured in full-size map pixels */
+    .spot {
+      position: absolute;
+      left:   calc(var(--ax) * var(--u));
+      top:    calc((var(--ay) - 69) * var(--u));
+      width:  calc((var(--pr) - var(--ax)) * var(--u));
+      height: calc(138 * var(--u));
+    }
+    .pill {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-sizing: border-box;
+      padding-left: calc((var(--r) + 14) * var(--u));
+      padding-right: calc(30 * var(--u));
+      border-radius: 999px;
+      background: linear-gradient(180deg, #78c4ff 0%, #4ba8f5 50%, #2f86dc 100%);
+      box-shadow:
+        inset 0 0 0 calc(5 * var(--u)) rgb(255 255 255 / 0.85),
+        0 calc(8 * var(--u)) calc(18 * var(--u)) rgb(18 70 140 / 0.28);
+    }
+    .pill::after { /* glossy highlight */
+      content: "";
+      position: absolute;
+      top: calc(15 * var(--u));
+      right: calc(40 * var(--u));
+      width: 24%;
+      height: calc(15 * var(--u));
+      border-radius: 999px;
+      background: linear-gradient(90deg, rgb(255 255 255 / 0), rgb(255 255 255 / 0.55));
+    }
+    .pill span {
+      position: relative;
+      color: #fff;
+      font-weight: 800;
+      font-size: calc(var(--fs) * var(--u));
+      line-height: 1.02;
+      text-align: center;
+      white-space: nowrap;
+      text-shadow: 0 calc(4 * var(--u)) 0 rgb(20 76 156 / 0.45);
+    }
+    .spot img {
+      position: absolute;
+      left:   calc((var(--bl) - var(--ax)) * var(--u));
+      top:    calc((var(--bt) - var(--ay) + 69) * var(--u));
+      width:  calc(var(--bw) * var(--u));
+      height: calc(var(--bh) * var(--u));
+      pointer-events: none;
+      filter: drop-shadow(0 calc(6 * var(--u)) calc(9 * var(--u)) rgb(18 70 140 / 0.25));
+    }
+    .spot:active { transform: scale(0.97); }
+
+    /* ---------- Sideways phone ---------- */
     .rotate {
       display: none;
       position: fixed;
       inset: 0;
-      z-index: 10;
+      z-index: 20;
       place-content: center;
       justify-items: center;
       gap: 14px;
       background: var(--mint);
       font-size: 17px;
-      font-weight: 600;
+      font-weight: 700;
       text-align: center;
     }
     .rotate p { margin: 0; }
@@ -90,7 +230,7 @@
       .rotate { display: grid; }
     }
 
-    /* Computer only: a shadow around the column, and the mouse can drag the map */
+    /* ---------- Computer only ---------- */
     @media (min-width: 600px) {
       html, body { background: var(--mint-deep); }
       .app { box-shadow: 0 0 0 1px rgb(31 90 70 / 0.08), 0 24px 70px rgb(31 90 70 / 0.22); }
@@ -103,10 +243,84 @@
 </head>
 <body>
   <main class="app">
-    <div class="map" id="map">
-      <img src="map.webp" width="3606" height="1846" draggable="false" fetchpriority="high"
-           alt="Illustrated town map with houses, a school, shops, a pharmacy, lakes, a farm and little green characters">
-    </div>
+
+    <!-- 1. Start -->
+    <section class="screen picture active" id="splash" data-theme="#ace3de"
+             style="--img: url(splash.webp); --top: #ace3de; --bottom: #5fa47e">
+      <div class="stage">
+        <button class="hot" data-go="age" aria-label="Let's go" style="--x:108; --y:414; --w:171; --h:65"></button>
+      </div>
+    </section>
+
+    <!-- 2. How old is your child? -->
+    <section class="screen picture" id="age" data-theme="#c4fcd2"
+             style="--img: url(age.webp); --top: #c4fcd2; --bottom: #c4fcd3">
+      <div class="stage">
+        <button class="hot" data-go="map" data-age="4-6"   style="--x:92;  --y:155.3; --w:94; --h:90"><span class="age-label">4–6 Years</span></button>
+        <button class="hot" data-go="map" data-age="6-8"   style="--x:200; --y:155.3; --w:94; --h:90"><span class="age-label">6–8 Years</span></button>
+        <button class="hot" data-go="map" data-age="8-10"  style="--x:92;  --y:267.3; --w:94; --h:90"><span class="age-label">8–10 Years</span></button>
+        <button class="hot" data-go="map" data-age="10-12" style="--x:200; --y:267.3; --w:94; --h:90"><span class="age-label">10–12 Years</span></button>
+      </div>
+    </section>
+
+    <!-- 3. The map: swipe left and right, tap a game -->
+    <section class="screen" id="map" data-theme="#ccfedf">
+      <div class="map" id="scroller">
+        <div class="world" id="world">
+          <img src="map.webp" width="3606" height="1846" draggable="false" fetchpriority="high"
+               alt="Illustrated town map with houses, a school, shops, lakes, a farm and little slugs">
+
+          <button class="spot" data-go="simon" data-loading
+                  style="--ax:956.6; --ay:618.8; --pr:1442; --r:86; --fs:60; --bl:865.1; --bt:515.9; --bw:195.8; --bh:201.1">
+            <span class="pill"><span>Simon Says</span></span>
+            <img src="badge-simon.webp" alt="">
+          </button>
+
+          <button class="spot" data-go="battle" data-loading
+                  style="--ax:2194.2; --ay:504.2; --pr:2619; --r:87.3; --fs:50; --bl:2066.1; --bt:410.1; --bw:235.4; --bh:190.5">
+            <span class="pill"><span>Battleship<br>Ducks</span></span>
+            <img src="badge-battle.webp" alt="">
+          </button>
+
+          <button class="spot" data-go="sudoku" data-loading
+                  style="--ax:2307.1; --ay:1564.4; --pr:2800; --r:88.4; --fs:50; --bl:2211.1; --bt:1438; --bw:203.2; --bh:240.1">
+            <span class="pill"><span>Garbage<br>Sudoku</span></span>
+            <img src="badge-garbage.webp" alt="">
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4. Loading (shown between the map and a game) -->
+    <section class="screen picture" id="loading" data-theme="#c4fcd2"
+             style="--img: url(loading.webp); --top: #c4fcd2; --bottom: #c6fcd4">
+      <div class="stage">
+        <img class="ring" src="ring.webp" alt="">
+      </div>
+    </section>
+
+    <!-- 5. Games (pictures for now; the map button takes you back) -->
+    <section class="screen picture" id="simon" data-theme="#f4d367"
+             style="--img: url(simon.webp); --top: #f4d367; --bottom: #6f8698">
+      <div class="stage">
+        <button class="hot" data-go="map" data-loading aria-label="Back to the map" style="--x:0; --y:456; --w:70; --h:56.3"></button>
+      </div>
+    </section>
+
+    <section class="screen picture" id="battle" data-theme="#c3efe1"
+             style="--img: url(battle.webp); --top: #c3efe1; --bottom: #55bfdf">
+      <div class="stage">
+        <button class="hot" data-go="map" data-loading aria-label="Back to the map" style="--x:4; --y:430; --w:72; --h:70"></button>
+      </div>
+    </section>
+
+    <section class="screen picture" id="sudoku" data-theme="#94e1f8"
+             style="--img: url(sudoku.webp); --top: #94e1f8; --bottom: #76d093">
+      <div class="stage">
+        <button class="hot" data-go="map" data-loading aria-label="Back to the map" style="--x:0; --y:455; --w:62; --h:57.3"></button>
+      </div>
+    </section>
+
   </main>
 
   <div class="rotate" aria-hidden="true">
@@ -119,44 +333,102 @@
   </div>
 
   <script>
-    const map = document.getElementById('map');
-    const img = map.querySelector('img');
+    const LOADING_TIME = 1600; // how long the loading screen shows, in milliseconds
+    const MAP_START = 1153;    // where the map opens, in full-size map pixels (the Simon Says label)
 
-    // Open in the middle of the map, and keep the same spot in view when the screen size changes
-    let spot = 0.5, lastWidth = 0, lastScrollWidth = 0;
-    const room = () => map.scrollWidth - map.clientWidth;
-    function showSpot() {
-      map.scrollLeft = spot * room();
-      lastWidth = map.clientWidth;
-      lastScrollWidth = map.scrollWidth;
+    const screens = {};
+    document.querySelectorAll('.screen').forEach(s => { screens[s.id] = s; });
+    const themeColor = document.querySelector('meta[name="theme-color"]');
+    let current = 'splash';
+    let busy = false;
+
+    // Fade the next screen in on top of the current one
+    function show(id) {
+      const prev = screens[current], next = screens[id];
+      if (prev === next) return;
+      prev.classList.remove('active');
+      prev.classList.add('leaving');
+      clearTimeout(prev.leaveTimer);
+      prev.leaveTimer = setTimeout(() => prev.classList.remove('leaving'), 320);
+      next.classList.add('active');
+      current = id;
+      themeColor.setAttribute('content', next.dataset.theme);
     }
-    map.addEventListener('scroll', () => {
-      if (map.clientWidth !== lastWidth || map.scrollWidth !== lastScrollWidth) return; // size is changing
-      if (room() > 0) spot = map.scrollLeft / room();
-    }, { passive: true });
-    addEventListener('resize', showSpot);
-    img.addEventListener('load', showSpot);
-    showSpot();
 
-    // Computer: drag the map with the mouse
-    let drag = null;
-    map.addEventListener('pointerdown', e => {
+    function go(target, withLoading) {
+      if (busy || target === current) return;
+      if (!withLoading) { show(target); return; }
+      busy = true;
+      show('loading');
+      setTimeout(() => { show(target); busy = false; }, LOADING_TIME);
+    }
+
+    document.addEventListener('click', e => {
+      const button = e.target.closest('[data-go]');
+      if (button) go(button.dataset.go, button.hasAttribute('data-loading'));
+    });
+
+    // ---------- Map ----------
+    const scroller = document.getElementById('scroller');
+    const world = document.getElementById('world');
+    const mapImg = world.querySelector('img');
+    let spot = null, lastWidth = 0, lastScrollWidth = 0;
+    const room = () => scroller.scrollWidth - scroller.clientWidth;
+
+    function layoutMap() {
+      const scale = scroller.clientHeight / 1846;          // screen pixels per map pixel
+      world.style.setProperty('--u', scale + 'px');
+      if (spot === null) {                                  // first time: open on the Simon Says label
+        const r = room();
+        spot = r > 0 ? Math.min(1, Math.max(0, (MAP_START * scale - scroller.clientWidth / 2) / r)) : 0;
+      }
+      scroller.scrollLeft = spot * room();
+      lastWidth = scroller.clientWidth;
+      lastScrollWidth = scroller.scrollWidth;
+    }
+    scroller.addEventListener('scroll', () => {
+      if (scroller.clientWidth !== lastWidth || scroller.scrollWidth !== lastScrollWidth) return;
+      if (room() > 0) spot = scroller.scrollLeft / room();
+    }, { passive: true });
+    addEventListener('resize', layoutMap);
+    mapImg.addEventListener('load', layoutMap);
+    layoutMap();
+
+    // Computer: drag the map with the mouse (a drag doesn't count as a tap on a label)
+    let drag = null, dragged = false;
+    scroller.addEventListener('pointerdown', e => {
       if (e.pointerType !== 'mouse' || e.button !== 0) return;
-      drag = { x: e.clientX, left: map.scrollLeft };
-      map.setPointerCapture(e.pointerId);
-      map.classList.add('dragging');
+      drag = { x: e.clientX, left: scroller.scrollLeft, id: e.pointerId, moving: false };
+      dragged = false;
     });
-    map.addEventListener('pointermove', e => {
-      if (drag) map.scrollLeft = drag.left - (e.clientX - drag.x);
+    scroller.addEventListener('pointermove', e => {
+      if (!drag) return;
+      const dx = e.clientX - drag.x;
+      if (!drag.moving && Math.abs(dx) > 5) {
+        drag.moving = true;
+        scroller.setPointerCapture(drag.id);
+        scroller.classList.add('dragging');
+      }
+      if (drag.moving) scroller.scrollLeft = drag.left - dx;
     });
-    const endDrag = () => { drag = null; map.classList.remove('dragging'); };
-    map.addEventListener('pointerup', endDrag);
-    map.addEventListener('pointercancel', endDrag);
+    const endDrag = () => {
+      if (drag && drag.moving) dragged = true;
+      drag = null;
+      scroller.classList.remove('dragging');
+    };
+    scroller.addEventListener('pointerup', endDrag);
+    scroller.addEventListener('pointercancel', endDrag);
+    scroller.addEventListener('click', e => {
+      if (dragged) { e.stopPropagation(); e.preventDefault(); dragged = false; }
+    }, true);
 
     // iPhone: stop a pinch from zooming the whole app
     for (const type of ['gesturestart', 'gesturechange']) {
       document.addEventListener(type, e => e.preventDefault(), { passive: false });
     }
+
+    // Load every picture up front so screens switch instantly
+    ['splash', 'age', 'loading', 'simon', 'battle', 'sudoku'].forEach(n => { new Image().src = n + '.webp'; });
 
     // Lets the app open without internet (see sw.js)
     if ('serviceWorker' in navigator) {

@@ -1,12 +1,12 @@
 {
-  "name": "Town Map",
-  "short_name": "Town Map",
+  "name": "Slug",
+  "short_name": "Slug",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#ccfedf",
-  "theme_color": "#ccfedf",
+  "background_color": "#ace3de",
+  "theme_color": "#ace3de",
   "icons": [
     { "src": "icon.png", "sizes": "512x512", "type": "image/png" }
   ]
