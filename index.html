@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Town Map</title>
+
+  <!-- How the app looks once it is on the iPhone Home Screen -->
+  <meta name="apple-mobile-web-app-title" content="Town Map">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="theme-color" content="#ccfedf">
+  <meta name="color-scheme" content="light">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icon.png">
+  <link rel="icon" type="image/png" href="icon.png">
+
+  <style>
+    :root {
+      --mint: #ccfedf;       /* the colour around the edge of the map */
+      --mint-deep: #b4f0cd;  /* around the app when it is opened on a computer */
+      --ink: #1f5a46;
+    }
+
+    html, body {
+      margin: 0;
+      height: 100%;
+      overflow: hidden;
+      overscroll-behavior: none;
+      background: var(--mint);
+      touch-action: pan-x pan-y; /* swiping only, no pinch-zooming the whole app */
+    }
+    body {
+      position: fixed;
+      inset: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+      color: var(--ink);
+      -webkit-text-size-adjust: 100%;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    /* The app: the whole screen on a phone, a phone-width column on a computer */
+    .app {
+      position: fixed;
+      inset: 0;
+      max-width: 440px;
+      margin: 0 auto;
+      overflow: hidden;
+      background: var(--mint);
+    }
+
+    /* The map is as tall as the screen and much wider than it,
+       so you swipe left and right to see the rest */
+    .map {
+      position: absolute;
+      inset: 0;
+      overflow-x: auto;
+      overflow-y: hidden;
+      overscroll-behavior: contain;
+      touch-action: pan-x pan-y;
+      scrollbar-width: none;
+    }
+    .map::-webkit-scrollbar { display: none; }
+    .map img {
+      display: block;
+      height: 100%;
+      width: auto;
+      max-width: none;
+      -webkit-touch-callout: none; /* no "Save image" menu on a long press */
+      -webkit-user-select: none;
+      user-select: none;
+      -webkit-user-drag: none;
+    }
+
+    /* Shown when the phone is turned sideways (iPhones don't let web apps lock rotation) */
+    .rotate {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 10;
+      place-content: center;
+      justify-items: center;
+      gap: 14px;
+      background: var(--mint);
+      font-size: 17px;
+      font-weight: 600;
+      text-align: center;
+    }
+    .rotate p { margin: 0; }
+    @media (orientation: landscape) and (max-height: 500px) and (pointer: coarse) {
+      .rotate { display: grid; }
+    }
+
+    /* Computer only: a shadow around the column, and the mouse can drag the map */
+    @media (min-width: 600px) {
+      html, body { background: var(--mint-deep); }
+      .app { box-shadow: 0 0 0 1px rgb(31 90 70 / 0.08), 0 24px 70px rgb(31 90 70 / 0.22); }
+    }
+    @media (pointer: fine) {
+      .map { cursor: grab; }
+      .map.dragging { cursor: grabbing; }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <div class="map" id="map">
+      <img src="map.webp" width="3606" height="1846" draggable="false" fetchpriority="high"
+           alt="Illustrated town map with houses, a school, shops, a pharmacy, lakes, a farm and little green characters">
+    </div>
+  </main>
+
+  <div class="rotate" aria-hidden="true">
+    <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+         stroke-linecap="round" stroke-linejoin="round">
+      <rect x="7" y="2.5" width="10" height="19" rx="2.5"/>
+      <path d="M11 18.5h2"/>
+    </svg>
+    <p>Turn your phone upright</p>
+  </div>
+
+  <script>
+    const map = document.getElementById('map');
+    const img = map.querySelector('img');
+
+    // Open in the middle of the map, and keep the same spot in view when the screen size changes
+    let spot = 0.5, lastWidth = 0, lastScrollWidth = 0;
+    const room = () => map.scrollWidth - map.clientWidth;
+    function showSpot() {
+      map.scrollLeft = spot * room();
+      lastWidth = map.clientWidth;
+      lastScrollWidth = map.scrollWidth;
+    }
+    map.addEventListener('scroll', () => {
+      if (map.clientWidth !== lastWidth || map.scrollWidth !== lastScrollWidth) return; // size is changing
+      if (room() > 0) spot = map.scrollLeft / room();
+    }, { passive: true });
+    addEventListener('resize', showSpot);
+    img.addEventListener('load', showSpot);
+    showSpot();
+
+    // Computer: drag the map with the mouse
+    let drag = null;
+    map.addEventListener('pointerdown', e => {
+      if (e.pointerType !== 'mouse' || e.button !== 0) return;
+      drag = { x: e.clientX, left: map.scrollLeft };
+      map.setPointerCapture(e.pointerId);
+      map.classList.add('dragging');
+    });
+    map.addEventListener('pointermove', e => {
+      if (drag) map.scrollLeft = drag.left - (e.clientX - drag.x);
+    });
+    const endDrag = () => { drag = null; map.classList.remove('dragging'); };
+    map.addEventListener('pointerup', endDrag);
+    map.addEventListener('pointercancel', endDrag);
+
+    // iPhone: stop a pinch from zooming the whole app
+    for (const type of ['gesturestart', 'gesturechange']) {
+      document.addEventListener(type, e => e.preventDefault(), { passive: false });
+    }
+
+    // Lets the app open without internet (see sw.js)
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js').catch(() => {});
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,13 @@
+{
+  "name": "Town Map",
+  "short_name": "Town Map",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#ccfedf",
+  "theme_color": "#ccfedf",
+  "icons": [
+    { "src": "icon.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
