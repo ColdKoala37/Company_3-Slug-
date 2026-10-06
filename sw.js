@@ -1,13 +1,12 @@
-// Saves the app's files on the phone so it opens without internet.
+// Saves the app's files on the iPad (or phone) so it opens without internet.
 // When there is internet it asks GitHub for the newest files first,
 // so an update you upload shows up the next time you open the app.
 
-const CACHE = 'slug-v2';
+const CACHE = 'slug-v3';
 const FILES = [
   './', 'index.html', 'manifest.json', 'icon.png',
   'splash.webp', 'age.webp', 'map.webp', 'loading.webp', 'ring.webp',
-  'simon.webp', 'battle.webp', 'sudoku.webp',
-  'badge-simon.webp', 'badge-battle.webp', 'badge-garbage.webp'
+  'simon.webp', 'battle.webp', 'sudoku.webp', 'profile.webp', 'settings.webp'
 ];
 
 self.addEventListener('install', event => {
