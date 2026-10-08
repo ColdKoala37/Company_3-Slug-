@@ -8,12 +8,12 @@
   <!-- How the app looks once it is on the Home Screen -->
   <meta name="apple-mobile-web-app-title" content="Slug">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <meta name="theme-color" content="#b9eae4">
+  <meta name="theme-color" content="#b7ebe4">
   <meta name="color-scheme" content="light">
   <meta name="robots" content="noindex">
   <link rel="manifest" href="manifest.json">
-  <link rel="apple-touch-icon" href="icon.png">
-  <link rel="icon" type="image/png" href="icon.png">
+  <link rel="apple-touch-icon" href="slug-icon.png">
+  <link rel="icon" type="image/png" href="slug-icon.png">
 
   <style>
     :root { --mint: #ccfedf; }
@@ -66,30 +66,32 @@
     .picture { background: linear-gradient(var(--top) 50%, var(--bottom) 50%); }
     @media (min-aspect-ratio: 3/4) { .picture { background: var(--mint); } }
 
+    /* --iw and --ih are the picture's own width and height in pixels */
     .stage {
       position: absolute;
       left: 50%;
       top: 50%;
       transform: translate(-50%, -50%);
-      width: min(100cqw, 100cqh * 1024 / 1366);
-      aspect-ratio: 1024 / 1366;
+      width: min(100cqw, 100cqh * var(--iw) / var(--ih));
+      aspect-ratio: var(--iw) / var(--ih);
       container-type: inline-size;
     }
-    .stage > img {
+    .stage > img.pic {
       display: block;
       width: 100%;
       height: 100%;
       pointer-events: none;
     }
-    /* Tap areas, positioned in the picture's own pixels (1024 x 1366) */
-    .hot {
+    /* Tap areas and placed pictures, positioned in the picture's own pixels */
+    .hot, .part {
       position: absolute;
-      left:   calc(var(--x) * 100cqw / 1024);
-      top:    calc(var(--y) * 100cqw / 1024);
-      width:  calc(var(--w) * 100cqw / 1024);
-      height: calc(var(--h) * 100cqw / 1024);
-      border-radius: calc(var(--r, 28) * 100cqw / 1024);
+      left:   calc(var(--x) * 100cqw / var(--iw));
+      top:    calc(var(--y) * 100cqw / var(--iw));
+      width:  calc(var(--w) * 100cqw / var(--iw));
+      height: calc(var(--h) * 100cqw / var(--iw));
+      border-radius: calc(var(--r, 28) * 100cqw / var(--iw));
     }
+    .part { pointer-events: none; }
     .hot:active { background: rgb(255 255 255 / 0.2); }
 
     /* ---------- Map ---------- */
@@ -127,6 +129,181 @@
     }
     .spot:active { background: rgb(255 255 255 / 0.22); }
 
+    /* ---------- Colour Sudoku ---------- */
+    @font-face {
+      font-family: 'Nunito';
+      src: url(nunito.woff2) format('woff2');
+      font-weight: 200 1000;
+      font-display: swap;
+    }
+    .sdk {
+      --px: calc(100cqw / 1024);   /* one pixel of your 1024 x 1366 Sudoku picture */
+      touch-action: none;
+      font-family: 'Nunito', ui-rounded, system-ui, sans-serif;
+    }
+    /* Each cell shows a piece of your picture: an empty slot, or a bin on a plain tile */
+    .sdk-cell {
+      position: absolute;
+      left:   calc((var(--ax) - 70) * var(--px));
+      top:    calc((var(--ay) - 78) * var(--px));
+      width:  calc(140 * var(--px));
+      height: calc(156 * var(--px));
+      border-radius: calc(20 * var(--px));
+      background-image: url(sudoku-board.png);
+      background-repeat: no-repeat;
+      background-size: calc(1024 * var(--px)) calc(1366 * var(--px));
+      background-position: calc(var(--sx) * -1 * var(--px)) calc(var(--sy) * -1 * var(--px));
+    }
+    .sdk-cell.open { cursor: pointer; }
+    .sdk-cell > img { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+    .sdk-cell > img.pop { animation: sdk-pop .34s cubic-bezier(.3, 1.6, .5, 1) both; }
+    @keyframes sdk-pop { from { transform: scale(1.22); } to { transform: scale(1); } }
+    .sdk-cell::after {
+      content: '';
+      position: absolute;
+      inset: calc(3 * var(--px));
+      border-radius: calc(20 * var(--px));
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity .12s;
+    }
+    .sdk-cell.hover::after {
+      opacity: 1;
+      box-shadow: 0 0 0 calc(5 * var(--px)) #fdd45e, 0 0 calc(22 * var(--px)) rgb(253 212 94 / .9);
+    }
+    .sdk-cell.clash::after {
+      box-shadow: 0 0 0 calc(6 * var(--px)) #fa6950, 0 0 calc(24 * var(--px)) rgb(250 105 80 / .8);
+      animation: sdk-blink .5s ease-in-out 3;
+    }
+    .sdk-cell.cheer::after {
+      box-shadow: 0 0 0 calc(6 * var(--px)) #fdd45e, 0 0 calc(30 * var(--px)) rgb(253 212 94 / .95);
+      animation: sdk-blink .7s ease-in-out both;
+      animation-delay: var(--delay);
+    }
+    @keyframes sdk-blink { 0%, 100% { opacity: 0; } 50% { opacity: 1; } }
+
+    /* The bins in your tray: a yellow glow shows which one is picked */
+    .sdk-tray {
+      position: absolute;
+      left:   calc(var(--x) * var(--px));
+      top:    calc(var(--y) * var(--px));
+      width:  calc(var(--w) * var(--px));
+      height: calc(var(--h) * var(--px));
+      border-radius: calc(28 * var(--px));
+      touch-action: none;
+    }
+    .sdk-tray::after {
+      content: '';
+      position: absolute;
+      inset: calc(6 * var(--px));
+      border-radius: calc(26 * var(--px));
+      pointer-events: none;
+      opacity: 0;
+      box-shadow: 0 0 0 calc(6 * var(--px)) #fdd45e, 0 0 calc(26 * var(--px)) rgb(253 212 94 / .95);
+      transition: opacity .15s;
+    }
+    .sdk-tray.pressed::after, .sdk-tray.selected::after { opacity: 1; }
+    .sdk-tray.selected::after { animation: sdk-breathe 1.2s ease-in-out infinite; }
+    @keyframes sdk-breathe { 50% { transform: scale(1.05); } }
+    .sdk.hint .sdk-tray::after { animation: sdk-blink .45s ease-in-out 2; }
+
+    /* The bin that follows your finger */
+    .sdk-sprite { position: fixed; z-index: 30; pointer-events: none; }
+    .sdk-sprite > img {
+      display: block;
+      width: 100%;
+      height: 100%;
+      transform: scale(1.12);
+      filter: drop-shadow(0 10px 12px rgb(36 75 131 / .28));
+      transition: transform .18s, filter .18s;
+    }
+    .sdk-sprite.landing > img { transform: scale(1); filter: none; }
+    .sdk-sprite.moving { transition: left .2s ease-out, top .2s ease-out, width .2s ease-out, height .2s ease-out, opacity .2s; }
+    .sdk-sprite.shake > img { animation: sdk-shake .45s ease-in-out; }
+    @keyframes sdk-shake {
+      0%, 100% { transform: translateX(0) rotate(0); }
+      20% { transform: translateX(-9%) rotate(-7deg); }
+      40% { transform: translateX(8%) rotate(6deg); }
+      60% { transform: translateX(-6%) rotate(-4deg); }
+      80% { transform: translateX(4%) rotate(3deg); }
+    }
+
+    /* Level number and five dots, in the gap between your header and the board */
+    .sdk-level {
+      position: absolute;
+      left: calc(372 * var(--px));
+      top: calc(252 * var(--px));
+      width: calc(280 * var(--px));
+      height: calc(40 * var(--px));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: calc(16 * var(--px));
+      border-radius: 999px;
+      background: rgb(255 255 255 / .94);
+      box-shadow: 0 calc(4 * var(--px)) calc(12 * var(--px)) rgb(36 75 131 / .18);
+      color: #244b83;
+      font-weight: 800;
+      font-size: calc(25 * var(--px));
+      line-height: 1;
+      pointer-events: none;
+    }
+    .sdk-level b { font-weight: 900; }
+    .sdk-dots { display: flex; gap: calc(8 * var(--px)); }
+    .sdk-dots i { width: calc(16 * var(--px)); height: calc(16 * var(--px)); border-radius: 50%; background: #d3e6f5; }
+    .sdk-dots i.done { background: #fdd45e; box-shadow: inset 0 0 0 calc(2 * var(--px)) #e9b93a; }
+    .sdk-dots i.now { background: #2e96f9; }
+
+    /* "Great job!" card */
+    .sdk-veil {
+      position: absolute;
+      left: calc(144 * var(--px));
+      top: calc(296 * var(--px));
+      width: calc(736 * var(--px));
+      height: calc(762 * var(--px));
+      border-radius: calc(44 * var(--px));
+      background: rgb(255 255 255 / .35);
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity .25s, visibility .25s;
+    }
+    .sdk-card {
+      position: absolute;
+      left: calc(212 * var(--px));
+      top: calc(486 * var(--px));
+      width: calc(600 * var(--px));
+      box-sizing: border-box;
+      padding: calc(44 * var(--px)) calc(40 * var(--px)) calc(50 * var(--px));
+      border-radius: calc(56 * var(--px));
+      background: #fff;
+      text-align: center;
+      box-shadow: 0 0 0 calc(8 * var(--px)) rgb(255 255 255 / .6), 0 calc(24 * var(--px)) calc(60 * var(--px)) rgb(36 75 131 / .35);
+      opacity: 0;
+      visibility: hidden;
+      transform: scale(.85);
+      transition: opacity .25s, visibility .25s, transform .35s cubic-bezier(.3, 1.5, .5, 1);
+    }
+    .sdk.won .sdk-veil, .sdk.won .sdk-card { opacity: 1; visibility: visible; }
+    .sdk.won .sdk-card { transform: scale(1); }
+    .sdk-card p { margin: 0; }
+    .sdk-card-title { color: #244b83; font-weight: 900; font-size: calc(68 * var(--px)); line-height: 1.05; }
+    .sdk-card p.sdk-card-text { margin-top: calc(14 * var(--px)); color: #2f558c; font-weight: 700; font-size: calc(34 * var(--px)); line-height: 1.2; }
+    .sdk-card-button {
+      margin-top: calc(38 * var(--px));
+      display: inline-flex;
+      align-items: center;
+      gap: calc(14 * var(--px));
+      height: calc(104 * var(--px));
+      padding: 0 calc(56 * var(--px));
+      border-radius: 999px;
+      background: #fdd45e;
+      color: #304257;
+      font: 900 calc(40 * var(--px)) / 1 'Nunito', ui-rounded, system-ui, sans-serif;
+      box-shadow: 0 0 0 calc(7 * var(--px)) #fafbf4, 0 calc(12 * var(--px)) calc(22 * var(--px)) rgb(48 66 87 / .28);
+    }
+    .sdk-card-button svg { width: calc(40 * var(--px)); height: calc(40 * var(--px)); }
+    .sdk-card-button:active { transform: scale(.96); }
+
     /* ---------- Phone turned sideways ---------- */
     .rotate {
       display: none;
@@ -155,21 +332,21 @@
 <body>
 
   <!-- Start -->
-  <section class="screen picture active" id="splash" data-theme="#b9eae4" style="--top:#b9eae4; --bottom:#63ac8a">
-    <div class="stage">
-      <img src="splash.png" width="1024" height="1366" alt="Slug">
-      <button class="hot" data-go="age" aria-label="Let's go" style="--x:298; --y:1108; --w:434; --h:158; --r:79"></button>
+  <section class="screen picture active" id="splash" data-theme="#b7ebe4" style="--top:#b7ebe4; --bottom:#58a788">
+    <div class="stage" style="--iw:1086; --ih:1448">
+      <img class="pic" src="splash.png" width="1086" height="1448" alt="Slug!">
+      <button class="hot" data-go="age" aria-label="Let's go" style="--x:329; --y:1150; --w:434; --h:157; --r:78"></button>
     </div>
   </section>
 
   <!-- How old is your child? -->
-  <section class="screen picture" id="age" data-theme="#ceffda" style="--top:#ceffda; --bottom:#ceffda">
-    <div class="stage">
-      <img src="age.png" width="1024" height="1366" alt="How old is your child?">
-      <button class="hot" data-go="map" aria-label="4 to 6 years"   style="--x:243; --y:413; --w:251; --h:241; --r:56"></button>
-      <button class="hot" data-go="map" aria-label="6 to 8 years"   style="--x:530; --y:413; --w:251; --h:241; --r:56"></button>
-      <button class="hot" data-go="map" aria-label="8 to 10 years"  style="--x:243; --y:712; --w:251; --h:241; --r:56"></button>
-      <button class="hot" data-go="map" aria-label="10 to 12 years" style="--x:530; --y:712; --w:251; --h:241; --r:56"></button>
+  <section class="screen picture" id="age" data-theme="#8fddd2" style="--top:#8fddd2; --bottom:#409882">
+    <div class="stage" style="--iw:1086; --ih:1449">
+      <img class="pic" src="age.png" width="1086" height="1449" alt="How old is your child?">
+      <button class="hot" data-go="map" aria-label="4 to 6 years"         style="--x:236; --y:449; --w:297; --h:301; --r:44"></button>
+      <button class="hot" data-go="map" aria-label="6 to 8 years"         style="--x:557; --y:449; --w:295; --h:301; --r:44"></button>
+      <button class="hot" data-go="map" aria-label="8 to 10 years"        style="--x:237; --y:792; --w:296; --h:312; --r:44"></button>
+      <button class="hot" data-go="map" aria-label="10 years and older"   style="--x:557; --y:792; --w:295; --h:312; --r:44"></button>
     </div>
   </section>
 
@@ -178,52 +355,87 @@
     <div class="map" id="scroller">
       <div class="world">
         <img src="map.png" width="3606" height="1846" draggable="false"
-             alt="Town map with labels for My Profile, Simon Says, Battleship Ducks and Garbage Sudoku">
-        <button class="spot" data-go="profile" aria-label="My Profile"       style="--x:16;   --y:5;    --w:761; --h:229"></button>
-        <button class="spot" data-go="simon"   aria-label="Simon Says"       style="--x:866;  --y:513;  --w:589; --h:202"></button>
-        <button class="spot" data-go="battle"  aria-label="Battleship Ducks" style="--x:2071; --y:412;  --w:593; --h:187"></button>
-        <button class="spot" data-go="sudoku"  aria-label="Garbage Sudoku"   style="--x:2171; --y:1459; --w:680; --h:208"></button>
+             alt="Town map with labels for Slug Says, Battleship Ducks, My Profile and Garbage Sudoku">
+        <button class="spot" data-go="simon"   data-loading aria-label="Slug Says"        style="--x:621;  --y:216;  --w:747; --h:242"></button>
+        <button class="spot" data-go="battle"  data-loading aria-label="Battleship Ducks" style="--x:1899; --y:379;  --w:838; --h:284"></button>
+        <button class="spot" data-go="profile"              aria-label="My Profile"       style="--x:1004; --y:921;  --w:809; --h:267"></button>
+        <button class="spot" data-go="sudoku"  data-loading aria-label="Garbage Sudoku"   style="--x:2063; --y:1445; --w:722; --h:276"></button>
       </div>
     </div>
   </section>
 
-  <!-- Games (pictures for now; the map button takes you back) -->
-  <section class="screen picture" id="simon" data-theme="#f9db73" style="--top:#f9db73; --bottom:#7992a0">
-    <div class="stage">
-      <img src="simon.png" width="1024" height="1366" alt="Simon Says">
-      <button class="hot" data-go="map" aria-label="Back to the map" style="--x:0; --y:1225; --w:146; --h:141"></button>
+  <!-- Loading (between the map and a game) -->
+  <section class="screen picture" id="loading" data-theme="#98e1f1" style="--top:#98e1f1; --bottom:#75ad88">
+    <div class="stage" style="--iw:1086; --ih:1448">
+      <img class="pic" src="loading.png" width="1086" height="1448" alt="Slugs are not that fast! Loading">
+      <img class="part" src="ring.webp" alt="" style="--x:323; --y:360; --w:440; --h:440; --r:0">
     </div>
   </section>
 
-  <section class="screen picture" id="battle" data-theme="#c3f2e2" style="--top:#c3f2e2; --bottom:#64c8e3">
-    <div class="stage">
-      <img src="battle.png" width="1024" height="1366" alt="Battleship Ducks">
-      <button class="hot" data-go="map" aria-label="Back to the map" style="--x:40; --y:1150; --w:155; --h:150; --r:75"></button>
+  <!-- Games -->
+  <section class="screen picture" id="simon" data-theme="#fcdc68" style="--top:#fcdc68; --bottom:#fad258">
+    <div class="stage" style="--iw:2048; --ih:2732">
+      <img class="pic" src="simon.gif" width="2048" height="2732" alt="Slug Says: click the buttons in the right order">
+      <!-- the map button from your still Simon screen, in the same corner -->
+      <img class="part" src="simon-map-button.png" alt="" style="--x:24; --y:2474; --w:242; --h:236; --r:64">
+      <button class="hot" data-go="map" data-loading aria-label="Back to the map" style="--x:0; --y:2450; --w:290; --h:282"></button>
     </div>
   </section>
 
+  <section class="screen picture" id="battle" data-theme="#c0f0e2" style="--top:#c0f0e2; --bottom:#64cae5">
+    <div class="stage" style="--iw:1536; --ih:2048">
+      <img class="pic" src="battle.webp" width="1536" height="2048" alt="Battleship Ducks">
+      <button class="hot" data-go="map" data-loading aria-label="Back to the map" style="--x:60; --y:1725; --w:232; --h:226; --r:116"></button>
+    </div>
+  </section>
+
+  <!-- Colour Sudoku: a playable game built on your Sudoku picture.
+       The board, the bins and the tray are all your picture; the game only moves pieces of it around. -->
   <section class="screen picture" id="sudoku" data-theme="#a2e7fd" style="--top:#a2e7fd; --bottom:#71d397">
-    <div class="stage">
-      <img src="sudoku.png" width="1024" height="1366" alt="Color Sudoku">
-      <button class="hot" data-go="map" aria-label="Back to the map" style="--x:0; --y:1225; --w:146; --h:141"></button>
+    <div class="stage sdk" id="sdk" style="--iw:1024; --ih:1366">
+      <img class="pic" src="sudoku-board.png" width="1024" height="1366" alt="Color Sudoku">
+
+      <div class="sdk-cells" id="sdkCells"></div>
+
+      <div class="sdk-level" id="sdkLevel" aria-live="polite">
+        <span class="sdk-level-text">Level <b id="sdkLevelNo">1</b></span>
+        <span class="sdk-dots" id="sdkDots"><i></i><i></i><i></i><i></i><i></i></span>
+      </div>
+
+      <!-- the four bins in the tray: drag one onto an empty slot, or tap a bin and then a slot -->
+      <button class="sdk-tray" data-color="B" aria-label="Blue bin"   style="--x:168; --y:1125; --w:149; --h:160"></button>
+      <button class="sdk-tray" data-color="Y" aria-label="Yellow bin" style="--x:348; --y:1125; --w:148; --h:160"></button>
+      <button class="sdk-tray" data-color="G" aria-label="Green bin"  style="--x:527; --y:1125; --w:149; --h:160"></button>
+      <button class="sdk-tray" data-color="R" aria-label="Red bin"    style="--x:707; --y:1125; --w:149; --h:160"></button>
+
+      <div class="sdk-veil" id="sdkVeil"></div>
+      <div class="sdk-card" id="sdkCard" role="dialog" aria-labelledby="sdkCardTitle">
+        <p class="sdk-card-title" id="sdkCardTitle">Great job!</p>
+        <p class="sdk-card-text" id="sdkCardText">Level 1 is done.</p>
+        <button class="sdk-card-button" id="sdkCardButton">
+          <span id="sdkCardButtonText">Next level</span>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h13M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+      </div>
+
+      <button class="hot" data-go="map" data-loading aria-label="Back to the map" style="--x:0; --y:1225; --w:146; --h:141"></button>
     </div>
   </section>
 
   <!-- My Profile -->
   <section class="screen picture" id="profile" data-theme="#caf8da" style="--top:#caf8da; --bottom:#9ae4be">
-    <div class="stage">
-      <img src="profile.png" width="1024" height="1366" alt="My Profile">
-      <button class="hot" data-go="settings" aria-label="Settings" style="--x:869; --y:19;   --w:145; --h:145; --r:73"></button>
-      <button class="hot" data-go="map"      aria-label="Save"     style="--x:344; --y:1175; --w:350; --h:143; --r:72"></button>
+    <div class="stage" style="--iw:1024; --ih:1366">
+      <img class="pic" src="profile.png" width="1024" height="1366" alt="My Profile">
+      <button class="hot" data-go="settings" aria-label="Parental controls" style="--x:869; --y:19;   --w:145; --h:145; --r:73"></button>
+      <button class="hot" data-go="map"      aria-label="Save"              style="--x:344; --y:1175; --w:350; --h:143; --r:72"></button>
     </div>
   </section>
 
-  <!-- Settings -->
-  <section class="screen picture" id="settings" data-theme="#93f4ad" style="--top:#93f4ad; --bottom:#93f4ad">
-    <div class="stage">
-      <img src="settings.png" width="1024" height="1366" alt="Settings">
-      <button class="hot" data-go="map"  aria-label="Back to the map" style="--x:0;   --y:1225; --w:146; --h:141"></button>
-      <button class="hot" data-go="back" aria-label="Back"            style="--x:867; --y:1226; --w:157; --h:140"></button>
+  <!-- Parental Controls -->
+  <section class="screen picture" id="settings" data-theme="#9aeaf1" style="--top:#9aeaf1; --bottom:#83c190">
+    <div class="stage" style="--iw:1086; --ih:1448">
+      <img class="pic" src="settings.png" width="1086" height="1448" alt="Parental Controls">
+      <button class="hot" data-go="back" aria-label="Back" style="--x:15; --y:19; --w:111; --h:115; --r:26"></button>
     </div>
   </section>
 
@@ -237,17 +449,20 @@
   </div>
 
   <script>
+    const LOADING_TIME = 1700; // one turn of your slug ring, in milliseconds
+
     const screens = {};
     document.querySelectorAll('.screen').forEach(s => { screens[s.id] = s; });
     const themeColor = document.querySelector('meta[name="theme-color"]');
     let current = 'splash';
     let cameFrom = 'map';
+    let busy = false;
 
     // Fade the next screen in on top of the current one
     function show(id) {
       const prev = screens[current], next = screens[id];
       if (!next || prev === next) return;
-      cameFrom = current;
+      if (current !== 'loading') cameFrom = current;
       prev.classList.remove('active');
       prev.classList.add('leaving');
       clearTimeout(prev.leaveTimer);
@@ -257,20 +472,31 @@
       themeColor.setAttribute('content', next.dataset.theme);
     }
 
+    function go(target, withLoading) {
+      if (target === 'back') target = cameFrom;
+      if (busy || target === current) return;
+      if (!withLoading) { show(target); return; }
+      busy = true;
+      show('loading');
+      setTimeout(() => { show(target); busy = false; }, LOADING_TIME);
+    }
+
     document.addEventListener('click', e => {
       const button = e.target.closest('[data-go]');
-      if (!button) return;
-      const target = button.dataset.go;
-      show(target === 'back' ? cameFrom : target);
+      if (button) go(button.dataset.go, button.hasAttribute('data-loading'));
     });
 
     // ---------- Map ----------
-    // It opens at the left edge (My Profile and Simon Says) and keeps the same spot in view
-    // when the screen size changes
+    // It opens centred on the Slug Says label and keeps the same spot in view when the screen size changes
+    const MAP_START = 994; // in pixels of the 3606 x 1846 map
     const scroller = document.getElementById('scroller');
-    let spot = 0, lastWidth = 0, lastScrollWidth = 0;
+    let spot = null, lastWidth = 0, lastScrollWidth = 0;
     const room = () => scroller.scrollWidth - scroller.clientWidth;
     function layoutMap() {
+      if (spot === null || !lastScrollWidth) {
+        const scale = scroller.clientHeight / 1846, r = room();
+        spot = r > 0 ? Math.min(1, Math.max(0, (MAP_START * scale - scroller.clientWidth / 2) / r)) : 0;
+      }
       scroller.scrollLeft = spot * room();
       lastWidth = scroller.clientWidth;
       lastScrollWidth = scroller.scrollWidth;
@@ -310,6 +536,228 @@
     scroller.addEventListener('click', e => {
       if (dragged) { e.stopPropagation(); e.preventDefault(); dragged = false; }
     }, true);
+
+    // ---------- Colour Sudoku ----------
+    // Five puzzles (B = blue, Y = yellow, G = green, R = red, . = empty slot), read row by row.
+    // Each has exactly one answer, and every empty slot can be worked out from the bins already in
+    // its own row and column, so a wrong colour always clashes with a bin the child can see.
+    const SDK_LEVELS = [
+      { puzzle: 'B.GRGRB.YG.B.BYG', solution: 'BYGRGRBYYGRBRBYG' },   // the same empty slots as your picture
+      { puzzle: 'Y.BRBRYG.BR.RY..', solution: 'YGBRBRYGGBRYRYGB' },
+      { puzzle: 'G..RY..B.GRYRYB.', solution: 'GBYRYRGBBGRYRYBG' },
+      { puzzle: '.G.YR.G.Y.B..BYR', solution: 'BGRYRYGBYRBGGBYR' },
+      { puzzle: '.YB.R..GB..Y.RG.', solution: 'GYBRRBYGBGRYYRGB' },
+    ];
+    const SDK_NAMES = { B: 'blue', Y: 'yellow', G: 'green', R: 'red' };
+    // Where each cell's bin or slot sits in your picture (its centre, in picture pixels)
+    const SDK_CENTRES = [
+      [253.5, 406.5], [423, 406], [600.5, 406.5], [772, 406.5],
+      [253, 580], [423, 580], [601, 580], [771, 580],
+      [253.5, 765.5], [424, 765], [600, 765], [771.5, 765],
+      [252.5, 943], [424, 944], [600.5, 943], [772.5, 944],
+    ];
+    // Which piece of your picture each kind of cell shows (top-left corner of a 140 x 156 piece)
+    const SDK_SOURCE = { empty: [353, 328], B: [184, 328], Y: [530, 328], G: [702, 328], R: [353, 502] };
+
+    const sdk = document.getElementById('sdk');
+    const sdkCellsBox = document.getElementById('sdkCells');
+    const sdkTray = [...sdk.querySelectorAll('.sdk-tray')];
+    const sdkDots = [...document.getElementById('sdkDots').children];
+    const sdkCells = SDK_CENTRES.map(([x, y], i) => {
+      const el = document.createElement('div');
+      el.className = 'sdk-cell';
+      el.dataset.index = i;
+      el.style.setProperty('--ax', x);
+      el.style.setProperty('--ay', y);
+      el.style.setProperty('--delay', ((i >> 2) + (i & 3)) * 70 + 'ms');
+      el.addEventListener('animationend', e => { if (e.animationName === 'sdk-blink') el.classList.remove('clash'); });
+      sdkCellsBox.appendChild(el);
+      return el;
+    });
+    const game = { level: 0, puzzle: '', solution: '', board: [], won: false, selected: null, pending: new Set() };
+
+    function sdkLoad(n) {
+      const lv = SDK_LEVELS[n];
+      Object.assign(game, {
+        level: n, puzzle: lv.puzzle, solution: lv.solution, won: false,
+        board: [...lv.puzzle].map(c => (c === '.' ? null : c)),
+      });
+      game.pending.clear();
+      sdkSelect(null);
+      sdk.classList.remove('won', 'hint');
+      sdkCells.forEach((el, i) => { el.classList.remove('cheer', 'clash', 'hover'); sdkDraw(i, false); });
+      document.getElementById('sdkLevelNo').textContent = n + 1;
+      sdkDots.forEach((d, i) => { d.className = i < n ? 'done' : i === n ? 'now' : ''; });
+    }
+
+    function sdkDraw(i, pop) {
+      const el = sdkCells[i], v = game.board[i], given = game.puzzle[i] !== '.';
+      const [sx, sy] = given ? SDK_SOURCE[v] : SDK_SOURCE.empty;
+      el.style.setProperty('--sx', sx);
+      el.style.setProperty('--sy', sy);
+      el.textContent = '';
+      if (!given && v) {                       // a bin the child placed, sitting on the empty slot
+        const img = document.createElement('img');
+        img.src = `bin-${SDK_NAMES[v]}.png`;
+        img.alt = '';
+        if (pop) img.className = 'pop';
+        el.appendChild(img);
+      }
+      el.classList.toggle('open', !v);
+      el.setAttribute('role', v ? 'img' : 'button');
+      el.setAttribute('aria-label', v ? `${SDK_NAMES[v]} bin` : `Empty slot, row ${(i >> 2) + 1}, column ${(i & 3) + 1}`);
+    }
+
+    function sdkSelect(color) {
+      game.selected = color;
+      sdkTray.forEach(b => b.classList.toggle('selected', b.dataset.color === color));
+    }
+
+    // A moving bin is the same size as a cell piece, so it lands exactly in place
+    function sdkSpriteSize() {
+      const s = sdk.getBoundingClientRect().width / 1024;
+      return [140 * s, 156 * s];
+    }
+    function sdkTrayCentre(color) {
+      const r = sdkTray.find(b => b.dataset.color === color).getBoundingClientRect();
+      return [r.left + r.width / 2, r.top + r.height / 2];
+    }
+    function sdkSprite(color, cx, cy) {
+      const [w, h] = sdkSpriteSize();
+      const el = document.createElement('div');
+      el.className = 'sdk-sprite';
+      el.innerHTML = `<img src="bin-${SDK_NAMES[color]}.png" alt="">`;
+      Object.assign(el.style, { width: w + 'px', height: h + 'px', left: cx - w / 2 + 'px', top: cy - h / 2 + 'px' });
+      document.body.appendChild(el);
+      return el;
+    }
+    function sdkMove(el, rect, done, extra) {
+      el.classList.add('moving');
+      requestAnimationFrame(() => {
+        Object.assign(el.style, { left: rect.left + 'px', top: rect.top + 'px', width: rect.width + 'px', height: rect.height + 'px' }, extra || {});
+      });
+      setTimeout(done, 230);
+    }
+    function sdkSendBack(el, color) {
+      const [cx, cy] = sdkTrayCentre(color), [w, h] = sdkSpriteSize();
+      el.classList.remove('landing', 'shake');
+      sdkMove(el, { left: cx - w / 2, top: cy - h / 2, width: w, height: h }, () => el.remove(), { opacity: '0' });
+    }
+
+    // Bins of this colour already in the same row or column
+    function sdkClashes(i, color) {
+      const out = [];
+      for (let k = 0; k < 16; k++) {
+        if (k !== i && game.board[k] === color && ((k >> 2) === (i >> 2) || (k & 3) === (i & 3))) out.push(k);
+      }
+      return out;
+    }
+
+    // Right colour: it drops in. Wrong colour: it wobbles, the clashing bin blinks red, and it goes back.
+    function sdkTry(color, i, el) {
+      if (game.won || game.board[i] || game.pending.has(i)) { sdkSendBack(el, color); return; }
+      game.pending.add(i);
+      el.classList.add('landing');
+      sdkMove(el, sdkCells[i].getBoundingClientRect(), () => {
+        game.pending.delete(i);
+        if (game.solution[i] === color) {
+          game.board[i] = color;
+          sdkDraw(i, true);
+          el.remove();
+          if (game.board.every(Boolean)) sdkWin();
+        } else {
+          el.classList.add('shake');
+          sdkClashes(i, color).forEach(k => {
+            const c = sdkCells[k];
+            c.classList.remove('clash');
+            void c.offsetWidth;
+            c.classList.add('clash');
+          });
+          setTimeout(() => sdkSendBack(el, color), 480);
+        }
+      });
+    }
+
+    function sdkWin() {
+      game.won = true;
+      sdkSelect(null);
+      const last = game.level === SDK_LEVELS.length - 1;
+      sdkDots[game.level].className = 'done';
+      sdkCells.forEach(c => { c.classList.remove('cheer'); void c.offsetWidth; c.classList.add('cheer'); });
+      document.getElementById('sdkCardTitle').textContent = last ? 'You did it!' : 'Great job!';
+      document.getElementById('sdkCardText').textContent = last ? 'You finished all 5 levels.' : `Level ${game.level + 1} is done.`;
+      document.getElementById('sdkCardButtonText').textContent = last ? 'Play again' : 'Next level';
+      setTimeout(() => { if (game.won) sdk.classList.add('won'); }, 900);
+    }
+    document.getElementById('sdkCardButton').addEventListener('click', () => {
+      if (game.won) sdkLoad(game.level === SDK_LEVELS.length - 1 ? 0 : game.level + 1);
+    });
+
+    // Drag a bin from the tray, or tap it to pick it (tap it again to put it back)
+    let sdkDrag = null;
+    sdkTray.forEach(btn => {
+      btn.addEventListener('pointerdown', e => {
+        if (game.won || sdkDrag || (e.pointerType === 'mouse' && e.button !== 0)) return;
+        e.preventDefault();
+        try { btn.setPointerCapture(e.pointerId); } catch (err) { /* keep going without capture */ }
+        btn.classList.add('pressed');
+        sdkDrag = { btn, color: btn.dataset.color, id: e.pointerId, x0: e.clientX, y0: e.clientY,
+                    sprite: null, over: null, lift: e.pointerType === 'touch' ? 0.38 : 0 };
+      });
+      btn.addEventListener('pointermove', e => {
+        const d = sdkDrag;
+        if (!d || e.pointerId !== d.id) return;
+        if (!d.sprite) {
+          if (Math.hypot(e.clientX - d.x0, e.clientY - d.y0) < 8) return;
+          sdkSelect(null);
+          d.sprite = sdkSprite(d.color, ...sdkTrayCentre(d.color));
+        }
+        const [w, h] = sdkSpriteSize();
+        const cx = e.clientX, cy = e.clientY - d.lift * h;   // on a finger, the bin rides just above it
+        d.sprite.style.left = cx - w / 2 + 'px';
+        d.sprite.style.top = cy - h / 2 + 'px';
+        const hit = document.elementFromPoint(cx, cy);
+        const cell = hit && hit.closest('.sdk-cell.open');
+        if (cell !== d.over) {
+          if (d.over) d.over.classList.remove('hover');
+          if (cell) cell.classList.add('hover');
+          d.over = cell;
+        }
+      });
+      const end = (e, cancelled) => {
+        const d = sdkDrag;
+        if (!d || e.pointerId !== d.id) return;
+        sdkDrag = null;
+        d.btn.classList.remove('pressed');
+        if (d.over) d.over.classList.remove('hover');
+        if (!d.sprite) {
+          if (!cancelled) sdkSelect(game.selected === d.color ? null : d.color);
+          return;
+        }
+        if (d.over && !cancelled) sdkTry(d.color, +d.over.dataset.index, d.sprite);
+        else sdkSendBack(d.sprite, d.color);
+      };
+      btn.addEventListener('pointerup', e => end(e, false));
+      btn.addEventListener('pointercancel', e => end(e, true));
+    });
+
+    // Tapping an empty slot sends the picked bin there; with nothing picked, the tray blinks as a hint
+    sdkCellsBox.addEventListener('click', e => {
+      const cell = e.target.closest('.sdk-cell');
+      if (!cell || game.won || !cell.classList.contains('open')) return;
+      if (!game.selected) {
+        sdk.classList.remove('hint');
+        void sdk.offsetWidth;
+        sdk.classList.add('hint');
+        return;
+      }
+      const color = game.selected;
+      sdkSelect(null);
+      sdkTry(color, +cell.dataset.index, sdkSprite(color, ...sdkTrayCentre(color)));
+    });
+    sdk.addEventListener('contextmenu', e => e.preventDefault());
+
+    sdkLoad(0);
 
     // Stop a pinch from zooming the whole app
     for (const type of ['gesturestart', 'gesturechange']) {

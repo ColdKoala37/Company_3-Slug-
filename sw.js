@@ -2,11 +2,13 @@
 // When there is internet it asks GitHub for the newest files first,
 // so an update you upload shows up the next time you open the app.
 
-const CACHE = 'slug-v4';
+const CACHE = 'slug-v8';
 const FILES = [
-  './', 'index.html', 'manifest.json', 'icon.png',
-  'splash.png', 'age.png', 'map.png', 'simon.png', 'battle.png',
-  'sudoku.png', 'profile.png', 'settings.png'
+  './', 'index.html', 'manifest.json', 'slug-icon.png', 'nunito.woff2',
+  'splash.png', 'age.png', 'map.png', 'loading.png', 'ring.webp',
+  'simon.gif', 'simon-map-button.png', 'battle.webp',
+  'sudoku-board.png', 'bin-blue.png', 'bin-yellow.png', 'bin-green.png', 'bin-red.png',
+  'profile.png', 'settings.png'
 ];
 
 self.addEventListener('install', event => {
