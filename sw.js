@@ -2,12 +2,27 @@
 // When there is internet it asks GitHub for the newest files first,
 // so an update you upload shows up the next time you open the app.
 
-const CACHE = 'slug-v8';
+const CACHE = 'slug-v9';
 const FILES = [
-  './', 'index.html', 'manifest.json', 'slug-icon.png', 'nunito.woff2',
-  'splash.png', 'age.png', 'map.png', 'loading.png', 'ring.webp',
-  'simon.gif', 'simon-map-button.png', 'battle.webp',
-  'sudoku-board.png', 'bin-blue.png', 'bin-yellow.png', 'bin-green.png', 'bin-red.png',
+  './', 'index.html', 'manifest.json', 'slug-icon.png', 'nunito.woff2', 'splash.png', 'age.png', 'map.png',
+  'loading.png', 'ring.webp',
+  // map
+  'fish.png', 'map-amb.png', 'map-bike.png', 'map-boat.png', 'map-bus.png', 'map-butterfly.png',
+  'map-car.png', 'map-fill-amb.png', 'map-fill-bike.png', 'map-fill-boat.png', 'map-fill-bus.png',
+  'map-fill-butterfly.png', 'map-fill-flag.png', 'map-fill-rod.png', 'map-fill-splash.png', 'map-flag.png',
+  'map-label-battle.png', 'map-label-profile.png', 'map-label-simon.png', 'map-label-sudoku.png',
+  'map-rod.png', 'map-splash.png',
+  // simon
+  'simon-all.png', 'simon-blue.png', 'simon-board.png', 'simon-green.png', 'simon-map-button.png',
+  'simon-red.png', 'simon-yellow.png',
+  // battle
+  'battle-board.png', 'crosshair.png', 'duck-cover-1-1.png', 'duck-cover-1-2.png', 'duck-cover-1-3.png',
+  'duck-cover-1-4.png', 'duck-cover-2-1.png', 'duck-cover-2-2.png', 'duck-cover-2-3.png',
+  'duck-cover-3-1.png', 'duck-cover-3-2.png', 'duck-cover-4-1.png', 'duck-cover-4-2.png',
+  'duck-cover-5-1.png', 'duck-cover-5-2.png',
+  // sudoku
+  'bin-blue.png', 'bin-green.png', 'bin-red.png', 'bin-yellow.png', 'sudoku-board.png',
+  // other
   'profile.png', 'settings.png'
 ];
 

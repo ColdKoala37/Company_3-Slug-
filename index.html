@@ -110,13 +110,8 @@
       position: relative;
       display: inline-block;
       height: 100%;
+      aspect-ratio: 3606 / 1846;   /* the shape of your map */
       vertical-align: top;
-    }
-    .world > img {
-      display: block;
-      height: 100%;
-      width: auto;
-      max-width: none;
     }
     /* Tap areas over the labels, in pixels of the 3606 x 1846 map */
     .spot {
@@ -129,18 +124,330 @@
     }
     .spot:active { background: rgb(255 255 255 / 0.22); }
 
-    /* ---------- Colour Sudoku ---------- */
+    /* ---------- The map comes to life ----------
+       Your map and everything on it is laid out in pixels of the 3606 x 1846 map, then scaled to the screen in one go. */
+    .life {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 3606px;
+      height: 1846px;
+      transform-origin: 0 0;
+      transform: scale(var(--k, .5));
+      pointer-events: none;
+      overflow: hidden;
+    }
+    .life .bit, .life .box {
+      position: absolute;
+      left: calc(var(--x) * 1px);
+      top: calc(var(--y) * 1px);
+      width: calc(var(--w) * 1px);
+      height: calc(var(--h) * 1px);
+    }
+    .life .box > img { display: block; width: 100%; height: 100%; }
+    /* paused while you are on another screen; with Reduce Motion switched on, your map stays exactly as it is */
+    .life.paused *, .life.paused *::before, .life.paused *::after { animation-play-state: paused !important; }
+    .life.calm *, .life.calm *::before, .life.calm *::after { animation: none !important; }
+    .life.calm .ifill, .life.calm .hang { visibility: hidden; }
+    /* the spot where a vehicle was parked only shows once it drives off */
+    .life .vfill { opacity: 0; transition: opacity .6s; }
+    .life.go .vfill { opacity: 1; }
+
+    /* Vehicles: placed by the script below, wheels on the road */
+    .mover {
+      position: absolute;
+      left: 0;
+      top: 0;
+      transform-origin: 0 0;
+      will-change: transform;
+    }
+    .mover img { position: absolute; display: block; }
+    .life .label { z-index: 5000; }
+
+    /* Waterfall: water runs down, the splash bounces, drops jump */
+    .falls { overflow: hidden; border-radius: 40px 60px 0 0; }
+    .falls i {
+      position: absolute;
+      top: -60px;
+      left: calc(var(--l) * 1px);
+      width: 5px;
+      height: 46px;
+      border-radius: 3px;
+      background: linear-gradient(rgb(255 255 255 / 0), rgb(255 255 255 / .75) 50%, rgb(255 255 255 / 0));
+      animation: fall 1.25s linear infinite;
+      animation-delay: var(--d);
+    }
+    @keyframes fall {
+      0% { transform: translateY(0); opacity: 0; }
+      15% { opacity: 1; }
+      85% { opacity: 1; }
+      100% { transform: translateY(215px); opacity: 0; }
+    }
+    .splash { transform-origin: 50% 92%; animation: splash .9s ease-in-out infinite; }
+    @keyframes splash {
+      0%, 100% { transform: scale(1, 1); }
+      35% { transform: scale(1.06, 1.16); }
+      70% { transform: scale(.97, .93); }
+    }
+    .drops i {
+      position: absolute;
+      left: calc(var(--x) * 1px);
+      top: calc(var(--y) * 1px);
+      width: calc(var(--s) * 1px);
+      height: calc(var(--s) * 1px);
+      border-radius: 50%;
+      background: #fff;
+      animation: drop 1.1s cubic-bezier(.3, .6, .6, 1) infinite;
+      animation-delay: var(--d);
+      opacity: 0;
+    }
+    @keyframes drop {
+      0% { transform: translate(0, 0) scale(.6); opacity: 0; }
+      12% { opacity: 1; }
+      45% { transform: translate(calc(var(--dx) * .55px), -26px) scale(1); }
+      90% { opacity: 1; }
+      100% { transform: translate(calc(var(--dx) * 1px), 10px) scale(.7); opacity: 0; }
+    }
+
+    /* Flag: your flag, in thin strips that wave one after the other */
+    .flag i {
+      position: absolute;
+      top: 0;
+      left: calc(var(--i) * 2px);
+      width: 2.5px;
+      height: 30px;
+      background: url(map-flag.png) no-repeat;
+      background-size: 50px 30px;
+      background-position: calc(var(--i) * -2px) 0;
+      animation: wave 1.3s ease-in-out infinite;
+      animation-delay: calc(var(--i) * -.052s);
+    }
+    @keyframes wave {
+      0%, 100% { transform: translateY(calc(var(--a) * -1px)) scaleY(1); }
+      50% { transform: translateY(calc(var(--a) * 1px)) scaleY(.96); }
+    }
+
+    /* Butterfly: flaps its wings towards its body, a few times, then glides */
+    .fly { animation: hover 3.2s ease-in-out infinite; }
+    @keyframes hover { 50% { transform: translate(3px, -5px) rotate(3deg); } }
+    .fly img {
+      transform-origin: 54% 62%;
+      animation: flap 2.2s linear infinite;
+    }
+    @keyframes flap {
+      0%, 60%, 100% { transform: rotate(-20deg) scaleX(1) rotate(20deg); }
+      7.5%, 22.5%, 37.5%, 52.5% { transform: rotate(-20deg) scaleX(.25) rotate(20deg); }
+      15%, 30%, 45% { transform: rotate(-20deg) scaleX(1) rotate(20deg); }
+    }
+
+    /* Boat: sails up and down the lake and rocks on the waves */
+    .boat { animation: sail 48s ease-in-out infinite; }
+    .boat > div { width: 100%; height: 100%; transform-origin: 50% 90%; animation: rock 3.4s ease-in-out infinite alternate; }
+    .boat img { display: block; width: 100%; height: 100%; }
+    @keyframes sail {
+      0% { transform: translateX(0) scaleX(1); }
+      15% { transform: translateX(-28px) scaleX(1); }
+      19% { transform: translateX(-28px) scaleX(-1); }
+      57% { transform: translateX(150px) scaleX(-1); }
+      61% { transform: translateX(150px) scaleX(1); }
+      100% { transform: translateX(0) scaleX(1); }
+    }
+    @keyframes rock { from { transform: rotate(-3deg) translateY(0); } to { transform: rotate(3deg) translateY(2px); } }
+
+    /* Fisherman: now and then the line jerks, the rod pulls up a fish, and the fish jumps back in */
+    .rod { transform-origin: 7px 92px; }                       /* the reel, in the rod picture */
+    .rod > img { display: block; width: 100%; height: 100%; }
+    .rod .hang { position: absolute; left: 77px; top: 2px; width: 4px; transform-origin: 2px 0; }
+    .rod .line { position: absolute; left: 0; top: 0; width: 3px; height: 107px; border-radius: 2px; background: rgb(255 255 255 / .95); }
+    .rod .fish {
+      position: absolute;
+      left: -45px;
+      top: 85px;
+      width: 60px;
+      height: 40px;
+      opacity: 0;
+      transform-origin: 77% 55%;
+      transform: rotate(-80deg);
+    }
+    .ripple {
+      position: absolute;
+      left: calc(var(--x) * 1px);
+      top: calc(var(--y) * 1px);
+      width: 46px;
+      height: 14px;
+      margin: -7px 0 0 -23px;
+      border-radius: 50%;
+      box-shadow: inset 0 0 0 2.5px rgb(255 255 255 / .9);
+      opacity: 0;
+    }
+    .fisher.catch .rod { animation: rod-catch 4.4s ease-in-out both; }
+    .fisher.catch .hang { animation: hang-catch 4.4s ease-in-out both; }
+    .fisher.catch .line { animation: line-catch 4.4s ease-in-out both; }
+    .fisher.catch .fish { animation: fish-catch 4.4s ease-in-out both; }
+    .fisher.catch .ripple.a { animation: ripple 4.4s ease-out both; }
+    .fisher.catch .ripple.b { animation: ripple-b 4.4s ease-out both; }
+    @keyframes rod-catch {
+      0%, 100% { transform: rotate(0); }
+      8% { transform: rotate(4deg); } 14% { transform: rotate(0); }
+      20% { transform: rotate(5deg); } 26% { transform: rotate(0); }
+      33% { transform: rotate(-19deg); }
+      40% { transform: rotate(-16deg); } 47% { transform: rotate(-19deg); } 54% { transform: rotate(-16deg); } 61% { transform: rotate(-19deg); }
+      70% { transform: rotate(-17deg); }
+      86% { transform: rotate(0); }
+    }
+    @keyframes hang-catch {
+      0%, 100% { transform: rotate(0); }
+      8% { transform: rotate(-4deg); } 14% { transform: rotate(0); }
+      20% { transform: rotate(-5deg); } 26% { transform: rotate(0); }
+      33% { transform: rotate(19deg); }
+      40% { transform: rotate(16deg); } 47% { transform: rotate(19deg); } 54% { transform: rotate(16deg); } 61% { transform: rotate(19deg); }
+      70% { transform: rotate(17deg); }
+      86% { transform: rotate(0); }
+    }
+    @keyframes line-catch {
+      0%, 26%, 86%, 100% { height: 107px; }
+      8% { height: 113px; } 20% { height: 115px; }
+      33%, 72% { height: 52px; }
+    }
+    @keyframes fish-catch {
+      0%, 30% { top: 85px; opacity: 0; transform: rotate(-80deg); }
+      33% { top: 30px; opacity: 1; transform: rotate(-95deg); }
+      38% { transform: rotate(-62deg); } 43% { transform: rotate(-100deg); } 48% { transform: rotate(-60deg); }
+      53% { transform: rotate(-98deg); } 58% { transform: rotate(-64deg); } 63% { transform: rotate(-96deg); }
+      70% { top: 30px; opacity: 1; transform: rotate(-70deg); }
+      78% { top: 96px; opacity: 1; transform: rotate(40deg); }
+      80%, 100% { top: 110px; opacity: 0; transform: rotate(60deg); }
+    }
+    @keyframes ripple {
+      0%, 4% { opacity: 0; transform: scale(.4); }
+      9% { opacity: 1; } 18% { opacity: 0; transform: scale(1.6); }
+      19% { opacity: 0; transform: scale(.4); } 22% { opacity: 1; } 31% { opacity: 0; transform: scale(1.7); }
+      100% { opacity: 0; }
+    }
+    @keyframes ripple-b {
+      0%, 78% { opacity: 0; transform: scale(.4); }
+      81% { opacity: 1; }
+      96%, 100% { opacity: 0; transform: scale(2.1); }
+    }
+
+    /* ---------- Shared by the three games ---------- */
     @font-face {
       font-family: 'Nunito';
       src: url(nunito.woff2) format('woff2');
       font-weight: 200 1000;
       font-display: swap;
     }
-    .sdk {
-      --px: calc(100cqw / 1024);   /* one pixel of your 1024 x 1366 Sudoku picture */
+    .game {
+      --px: calc(100cqw / 1024);   /* 1/1024 of your picture's width */
       touch-action: none;
       font-family: 'Nunito', ui-rounded, system-ui, sans-serif;
     }
+    /* A placed area in picture pixels that does not light up when pressed */
+    .area {
+      position: absolute;
+      left:   calc(var(--x) * 100cqw / var(--iw));
+      top:    calc(var(--y) * 100cqw / var(--iw));
+      width:  calc(var(--w) * 100cqw / var(--iw));
+      height: calc(var(--h) * 100cqw / var(--iw));
+      border-radius: calc(var(--r, 0) * 100cqw / var(--iw));
+    }
+
+    /* Level number and dots, plus a short message in Slug Says and Battleship Ducks */
+    .pill {
+      position: absolute;
+      left: calc(var(--x) * var(--px));
+      top: calc(var(--y) * var(--px));
+      transform: translateX(-50%);
+      box-sizing: border-box;
+      min-width: calc(var(--w, 0) * var(--px));
+      height: calc(var(--h, 44) * var(--px));
+      padding: 0 calc(24 * var(--px));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: calc(16 * var(--px));
+      white-space: nowrap;
+      border-radius: 999px;
+      background: rgb(255 255 255 / .94);
+      box-shadow: 0 calc(4 * var(--px)) calc(12 * var(--px)) rgb(36 75 131 / .18);
+      color: #244b83;
+      font-weight: 800;
+      font-size: calc(25 * var(--px));
+      line-height: 1;
+      pointer-events: none;
+    }
+    .pill b { font-weight: 900; }
+    .dots { display: flex; gap: calc(8 * var(--px)); }
+    .dots i { width: calc(16 * var(--px)); height: calc(16 * var(--px)); border-radius: 50%; background: #d3e6f5; }
+    .dots i.done { background: #fdd45e; box-shadow: inset 0 0 0 calc(2 * var(--px)) #e9b93a; }
+    .dots i.now { background: #2e96f9; }
+    .say {
+      padding-left: calc(16 * var(--px));
+      border-left: calc(3 * var(--px)) solid #d3e6f5;
+      font-weight: 900;
+    }
+    .say:empty { display: none; }
+    .say.pop { animation: say-pop .32s cubic-bezier(.3, 1.6, .5, 1); }
+    @keyframes say-pop { from { transform: scale(1.25); } to { transform: scale(1); } }
+    .pill.shake { animation: pill-shake .4s ease-in-out; }
+    @keyframes pill-shake {
+      0%, 100% { transform: translateX(-50%); }
+      25% { transform: translateX(calc(-50% - 10 * var(--px))); }
+      75% { transform: translateX(calc(-50% + 10 * var(--px))); }
+    }
+
+    /* "Great job!" card (and the "Start" card in Slug Says and Battleship Ducks) */
+    .veil {
+      position: absolute;
+      left: calc(var(--x) * var(--px));
+      top: calc(var(--y) * var(--px));
+      width: calc(var(--w) * var(--px));
+      height: calc(var(--h) * var(--px));
+      border-radius: calc(44 * var(--px));
+      background: rgb(255 255 255 / .35);
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity .25s, visibility .25s;
+      pointer-events: none;
+    }
+    .card {
+      position: absolute;
+      left: calc(212 * var(--px));
+      top: calc(var(--y, 486) * var(--px));
+      width: calc(600 * var(--px));
+      box-sizing: border-box;
+      padding: calc(44 * var(--px)) calc(40 * var(--px)) calc(50 * var(--px));
+      border-radius: calc(56 * var(--px));
+      background: #fff;
+      text-align: center;
+      box-shadow: 0 0 0 calc(8 * var(--px)) rgb(255 255 255 / .6), 0 calc(24 * var(--px)) calc(60 * var(--px)) rgb(36 75 131 / .35);
+      opacity: 0;
+      visibility: hidden;
+      transform: scale(.85);
+      transition: opacity .25s, visibility .25s, transform .35s cubic-bezier(.3, 1.5, .5, 1);
+    }
+    .game.won .veil, .game.won .card { opacity: 1; visibility: visible; }
+    .game.won .card { transform: scale(1); }
+    .card p { margin: 0; }
+    .card-title { color: #244b83; font-weight: 900; font-size: calc(68 * var(--px)); line-height: 1.05; }
+    .card p.card-text { margin-top: calc(14 * var(--px)); color: #2f558c; font-weight: 700; font-size: calc(34 * var(--px)); line-height: 1.2; }
+    .card-button {
+      margin-top: calc(38 * var(--px));
+      display: inline-flex;
+      align-items: center;
+      gap: calc(14 * var(--px));
+      height: calc(104 * var(--px));
+      padding: 0 calc(56 * var(--px));
+      border-radius: 999px;
+      background: #fdd45e;
+      color: #304257;
+      font: 900 calc(40 * var(--px)) / 1 'Nunito', ui-rounded, system-ui, sans-serif;
+      box-shadow: 0 0 0 calc(7 * var(--px)) #fafbf4, 0 calc(12 * var(--px)) calc(22 * var(--px)) rgb(48 66 87 / .28);
+    }
+    .card-button svg { width: calc(40 * var(--px)); height: calc(40 * var(--px)); }
+    .card-button:active { transform: scale(.96); }
+
+    /* ---------- Colour Sudoku ---------- */
     /* Each cell shows a piece of your picture: an empty slot, or a bin on a plain tile */
     .sdk-cell {
       position: absolute;
@@ -228,81 +535,90 @@
       80% { transform: translateX(4%) rotate(3deg); }
     }
 
-    /* Level number and five dots, in the gap between your header and the board */
-    .sdk-level {
-      position: absolute;
-      left: calc(372 * var(--px));
-      top: calc(252 * var(--px));
-      width: calc(280 * var(--px));
-      height: calc(40 * var(--px));
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: calc(16 * var(--px));
-      border-radius: 999px;
-      background: rgb(255 255 255 / .94);
-      box-shadow: 0 calc(4 * var(--px)) calc(12 * var(--px)) rgb(36 75 131 / .18);
-      color: #244b83;
-      font-weight: 800;
-      font-size: calc(25 * var(--px));
-      line-height: 1;
-      pointer-events: none;
-    }
-    .sdk-level b { font-weight: 900; }
-    .sdk-dots { display: flex; gap: calc(8 * var(--px)); }
-    .sdk-dots i { width: calc(16 * var(--px)); height: calc(16 * var(--px)); border-radius: 50%; background: #d3e6f5; }
-    .sdk-dots i.done { background: #fdd45e; box-shadow: inset 0 0 0 calc(2 * var(--px)) #e9b93a; }
-    .sdk-dots i.now { background: #2e96f9; }
 
-    /* "Great job!" card */
-    .sdk-veil {
+    /* ---------- Slug Says ---------- */
+    /* your lit buttons fade in and out in 50 ms, like the in-between frames of your animation */
+    .sim-light { opacity: 0; transition: opacity .05s linear; }
+    .sim-light.on { opacity: 1; }
+    .sim-pad { touch-action: none; cursor: pointer; }
+
+    /* ---------- Battleship Ducks ---------- */
+    .bs-cover { opacity: 1; transition: opacity .45s ease; }
+    .bs-cover.off { opacity: 0; }
+    .bs-cover.fast { transition-duration: .2s; }
+    .bs-board { touch-action: none; cursor: pointer; }
+
+    /* your crosshair, from your Battleship animation */
+    .bs-aim {
       position: absolute;
-      left: calc(144 * var(--px));
-      top: calc(296 * var(--px));
-      width: calc(736 * var(--px));
-      height: calc(762 * var(--px));
-      border-radius: calc(44 * var(--px));
-      background: rgb(255 255 255 / .35);
+      left: calc(var(--cx, 512) * var(--px));
+      top: calc(var(--cy, 700) * var(--px));
+      width: calc(var(--s, 82) * var(--px));
+      height: calc(var(--s, 82) * var(--px));
+      transform: translate(-50%, -50%);
       opacity: 0;
-      visibility: hidden;
-      transition: opacity .25s, visibility .25s;
+      pointer-events: none;
+      transition: opacity .15s;
     }
-    .sdk-card {
+    .bs-aim.on { opacity: 1; }
+    .bs-aim.glide { transition: opacity .15s, left .16s ease-out, top .16s ease-out, width .16s, height .16s; }
+    .bs-aim.fire { animation: bs-fire .3s ease-in both; }
+    @keyframes bs-fire {
+      0% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+      45% { transform: translate(-50%, -50%) scale(.72); opacity: 1; }
+      100% { transform: translate(-50%, -50%) scale(.55); opacity: 0; }
+    }
+    .bs-aim.nope { animation: bs-nope .35s ease-in-out; }
+    @keyframes bs-nope {
+      0%, 100% { transform: translate(-50%, -50%); }
+      25% { transform: translate(calc(-50% - 8 * var(--px)), -50%); }
+      75% { transform: translate(calc(-50% + 8 * var(--px)), -50%); }
+    }
+
+    /* A miss leaves a little white ring on the water; a ring of water ripples out, like in your animation */
+    .bs-mark, .bs-ripple {
       position: absolute;
-      left: calc(212 * var(--px));
-      top: calc(486 * var(--px));
-      width: calc(600 * var(--px));
-      box-sizing: border-box;
-      padding: calc(44 * var(--px)) calc(40 * var(--px)) calc(50 * var(--px));
-      border-radius: calc(56 * var(--px));
-      background: #fff;
-      text-align: center;
-      box-shadow: 0 0 0 calc(8 * var(--px)) rgb(255 255 255 / .6), 0 calc(24 * var(--px)) calc(60 * var(--px)) rgb(36 75 131 / .35);
+      left: calc(var(--cx) * var(--px));
+      top: calc(var(--cy) * var(--px));
+      border-radius: 50%;
+      pointer-events: none;
+      transform: translate(-50%, -50%);
+    }
+    .bs-mark {
+      width: calc(var(--s) * .3 * var(--px));
+      height: calc(var(--s) * .3 * var(--px));
+      box-shadow: inset 0 0 0 calc(4 * var(--px)) rgb(255 255 255 / .9);
+      background: rgb(255 255 255 / .25);
+      animation: bs-mark-in .35s .25s cubic-bezier(.3, 1.6, .5, 1) both;
+    }
+    @keyframes bs-mark-in { from { transform: translate(-50%, -50%) scale(0); } to { transform: translate(-50%, -50%) scale(1); } }
+    .bs-ripple {
+      width: calc(var(--s) * .62 * var(--px));
+      height: calc(var(--s) * .62 * var(--px));
+      box-shadow: inset 0 0 0 calc(4 * var(--px)) #fff;
+      animation: bs-ripple .6s ease-out both;
+    }
+    .bs-ripple.hit { box-shadow: inset 0 0 0 calc(6 * var(--px)) #fdd45e; }
+    @keyframes bs-ripple {
+      0% { transform: translate(-50%, -50%) scale(.6); opacity: 1; }
+      100% { transform: translate(-50%, -50%) scale(1.5); opacity: 0; }
+    }
+    .bs-mark.nope { animation: bs-blink .45s ease-in-out 2; }
+    @keyframes bs-blink { 50% { opacity: .2; } }
+
+    /* FIRE! glows once a square is picked */
+    .bs-fire::after {
+      content: '';
+      position: absolute;
+      inset: calc(8 * var(--px));
+      border-radius: 50%;
+      pointer-events: none;
       opacity: 0;
-      visibility: hidden;
-      transform: scale(.85);
-      transition: opacity .25s, visibility .25s, transform .35s cubic-bezier(.3, 1.5, .5, 1);
+      box-shadow: 0 0 0 calc(7 * var(--px)) #fdd45e, 0 0 calc(30 * var(--px)) rgb(253 212 94 / .95);
+      transition: opacity .2s;
     }
-    .sdk.won .sdk-veil, .sdk.won .sdk-card { opacity: 1; visibility: visible; }
-    .sdk.won .sdk-card { transform: scale(1); }
-    .sdk-card p { margin: 0; }
-    .sdk-card-title { color: #244b83; font-weight: 900; font-size: calc(68 * var(--px)); line-height: 1.05; }
-    .sdk-card p.sdk-card-text { margin-top: calc(14 * var(--px)); color: #2f558c; font-weight: 700; font-size: calc(34 * var(--px)); line-height: 1.2; }
-    .sdk-card-button {
-      margin-top: calc(38 * var(--px));
-      display: inline-flex;
-      align-items: center;
-      gap: calc(14 * var(--px));
-      height: calc(104 * var(--px));
-      padding: 0 calc(56 * var(--px));
-      border-radius: 999px;
-      background: #fdd45e;
-      color: #304257;
-      font: 900 calc(40 * var(--px)) / 1 'Nunito', ui-rounded, system-ui, sans-serif;
-      box-shadow: 0 0 0 calc(7 * var(--px)) #fafbf4, 0 calc(12 * var(--px)) calc(22 * var(--px)) rgb(48 66 87 / .28);
-    }
-    .sdk-card-button svg { width: calc(40 * var(--px)); height: calc(40 * var(--px)); }
-    .sdk-card-button:active { transform: scale(.96); }
+    .bs.aimed .bs-fire::after { opacity: 1; animation: bs-breathe 1.1s ease-in-out infinite; }
+    @keyframes bs-breathe { 50% { transform: scale(1.05); } }
 
     /* ---------- Phone turned sideways ---------- */
     .rotate {
@@ -354,8 +670,58 @@
   <section class="screen" id="map" data-theme="#ccfedf">
     <div class="map" id="scroller">
       <div class="world">
-        <img src="map.png" width="3606" height="1846" draggable="false"
-             alt="Town map with labels for Slug Says, Battleship Ducks, My Profile and Garbage Sudoku">
+
+        <!-- The map comes to life. Everything below is cut from your own map, except the fish and the water drops. -->
+        <div class="life" id="life">
+          <!-- your map; everything on it is drawn in its pixels, so it all lines up exactly -->
+          <img class="bit" src="map.png" width="3606" height="1846" draggable="false" style="--x:0; --y:0; --w:3606; --h:1846"
+               alt="Town map with labels for Slug Says, Battleship Ducks, My Profile and Garbage Sudoku">
+          <!-- your map where the moving things were, rebuilt from the pixels around them -->
+          <img class="bit vfill" src="map-fill-bus.png" alt="" style="--x:1078; --y:414; --w:208; --h:144">
+          <img class="bit vfill" src="map-fill-bike.png" alt="" style="--x:1926; --y:985; --w:174; --h:179">
+          <img class="bit vfill" src="map-fill-amb.png" alt="" style="--x:3197; --y:944; --w:242; --h:181">
+          <img class="bit ifill" src="map-fill-boat.png" alt="" style="--x:3230; --y:1377; --w:140; --h:184">
+          <img class="bit ifill" src="map-fill-butterfly.png" alt="" style="--x:486; --y:1562; --w:75; --h:72">
+          <img class="bit ifill" src="map-fill-flag.png" alt="" style="--x:1668; --y:201; --w:67; --h:50">
+          <img class="bit ifill" src="map-fill-splash.png" alt="" style="--x:358; --y:508; --w:119; --h:71">
+          <img class="bit ifill" src="map-fill-rod.png" alt="" style="--x:3099; --y:1396; --w:104; --h:166">
+
+          <!-- waterfall -->
+          <div class="bit falls" style="--x:312; --y:356; --w:150; --h:166"><i style="--l:45; --d:0s"></i><i style="--l:72; --d:-0.45s"></i><i style="--l:98; --d:-0.9s"></i><i style="--l:120; --d:-0.25s"></i><i style="--l:58; --d:-0.7s"></i></div>
+          <img class="bit splash" src="map-splash.png" alt="" style="--x:367; --y:517; --w:101; --h:53">
+          <div class="drops"><i style="--x:398; --y:526; --s:7; --dx:-22; --d:0s"></i><i style="--x:414; --y:520; --s:9; --dx:-6; --d:-0.3s"></i><i style="--x:430; --y:522; --s:8; --dx:10; --d:-0.6s"></i><i style="--x:446; --y:530; --s:6; --dx:24; --d:-0.85s"></i><i style="--x:422; --y:528; --s:6; --dx:-14; --d:-0.15s"></i></div>
+
+          <!-- flag on the building -->
+          <div class="bit flag" style="--x:1675; --y:211; --w:50; --h:30"><i style="--i:0; --a:0.0"></i><i style="--i:1; --a:0.11"></i><i style="--i:2; --a:0.22"></i><i style="--i:3; --a:0.33"></i><i style="--i:4; --a:0.44"></i><i style="--i:5; --a:0.55"></i><i style="--i:6; --a:0.66"></i><i style="--i:7; --a:0.77"></i><i style="--i:8; --a:0.88"></i><i style="--i:9; --a:0.99"></i><i style="--i:10; --a:1.1"></i><i style="--i:11; --a:1.21"></i><i style="--i:12; --a:1.32"></i><i style="--i:13; --a:1.43"></i><i style="--i:14; --a:1.54"></i><i style="--i:15; --a:1.65"></i><i style="--i:16; --a:1.76"></i><i style="--i:17; --a:1.87"></i><i style="--i:18; --a:1.98"></i><i style="--i:19; --a:2.09"></i><i style="--i:20; --a:2.2"></i><i style="--i:21; --a:2.31"></i><i style="--i:22; --a:2.42"></i><i style="--i:23; --a:2.53"></i><i style="--i:24; --a:2.64"></i></div>
+
+          <!-- butterfly -->
+          <div class="box fly" style="--x:497; --y:1573; --w:53; --h:50"><img src="map-butterfly.png" alt=""></div>
+
+          <!-- sailing boat -->
+          <div class="box boat" style="--x:3243; --y:1390; --w:114; --h:158"><div><img src="map-boat.png" alt=""></div></div>
+
+          <!-- fisherman: rod and line; the fish is the one drawing that is not from your pictures -->
+          <div class="fisher" id="fisher">
+            <span class="ripple a" style="--x:3189; --y:1516"></span>
+            <span class="ripple b" style="--x:3189; --y:1516"></span>
+            <div class="box rod" style="--x:3109; --y:1408; --w:80; --h:95">
+              <img src="map-rod.png" alt="">
+              <div class="hang"><i class="line"></i><img class="fish" src="fish.png" alt=""></div>
+            </div>
+          </div>
+
+          <!-- vehicles: the script below drives them along the roads -->
+          <div class="mover" id="mvBus"><img src="map-bus.png" alt="" style="width:184px; height:120px; left:-92px; top:-118px"></div>
+          <div class="mover" id="mvCar"><img src="map-car.png" alt="" style="width:162px; height:108px; left:-81px; top:-106px"></div>
+          <div class="mover" id="mvBike"><img src="map-bike.png" alt="" style="width:130px; height:149px; left:-64px; top:-147px"></div>
+          <div class="mover" id="mvAmb"><img src="map-amb.png" alt="" style="width:218px; height:157px; left:-119px; top:-155px"></div>
+
+          <!-- your labels, on top, so vehicles drive behind them -->
+          <img class="bit label" src="map-label-simon.png" alt="" style="--x:631; --y:225; --w:727; --h:223">
+          <img class="bit label" src="map-label-battle.png" alt="" style="--x:1904; --y:384; --w:827; --h:273">
+          <img class="bit label" src="map-label-profile.png" alt="" style="--x:1013; --y:931; --w:790; --h:247">
+          <img class="bit label" src="map-label-sudoku.png" alt="" style="--x:2073; --y:1455; --w:702; --h:256">
+        </div>
         <button class="spot" data-go="simon"   data-loading aria-label="Slug Says"        style="--x:621;  --y:216;  --w:747; --h:242"></button>
         <button class="spot" data-go="battle"  data-loading aria-label="Battleship Ducks" style="--x:1899; --y:379;  --w:838; --h:284"></button>
         <button class="spot" data-go="profile"              aria-label="My Profile"       style="--x:1004; --y:921;  --w:809; --h:267"></button>
@@ -372,34 +738,86 @@
     </div>
   </section>
 
-  <!-- Games -->
-  <section class="screen picture" id="simon" data-theme="#fcdc68" style="--top:#fcdc68; --bottom:#fad258">
-    <div class="stage" style="--iw:2048; --ih:2732">
-      <img class="pic" src="simon.gif" width="2048" height="2732" alt="Slug Says: click the buttons in the right order">
-      <!-- the map button from your still Simon screen, in the same corner -->
+  <!-- Slug Says: a playable Simon game on your Slug Says picture.
+       The board is the first frame of your animation; each lit button is your own lit frame laid on top. -->
+  <section class="screen picture" id="simon" data-theme="#fcdc68" style="--top:#fcdc68; --bottom:#fad259">
+    <div class="stage game sim" id="sim" style="--iw:2048; --ih:2732">
+      <img class="pic" src="simon-board.png" width="2048" height="2732" alt="Slug Says: click the buttons in the right order">
+      <!-- the map button from your still Slug Says screen, in the same corner -->
       <img class="part" src="simon-map-button.png" alt="" style="--x:24; --y:2474; --w:242; --h:236; --r:64">
+
+      <img class="part sim-light" data-color="green"  src="simon-green.png"  alt="" style="--x:537; --y:1923; --w:577;  --h:428; --r:0">
+      <img class="part sim-light" data-color="red"    src="simon-red.png"    alt="" style="--x:951; --y:1925; --w:564;  --h:428; --r:0">
+      <img class="part sim-light" data-color="yellow" src="simon-yellow.png" alt="" style="--x:509; --y:2164; --w:600;  --h:487; --r:0">
+      <img class="part sim-light" data-color="blue"   src="simon-blue.png"   alt="" style="--x:944; --y:2162; --w:595;  --h:488; --r:0">
+      <img class="part sim-light" data-color="all"    src="simon-all.png"    alt="" style="--x:509; --y:1923; --w:1030; --h:728; --r:0">
+
+      <!-- the coloured pad: tap a colour -->
+      <div class="area sim-pad" id="simPad" role="group" aria-label="Coloured buttons" style="--x:520; --y:1960; --w:1010; --h:660; --r:505"></div>
+
+      <div class="pill" id="simPill" aria-live="polite" style="--x:512; --y:262">
+        <span>Level <b id="simLevelNo">1</b></span>
+        <span class="dots" id="simDots"><i></i><i></i><i></i></span>
+        <span class="say" id="simSay"></span>
+      </div>
+
+      <div class="card" role="dialog" aria-labelledby="simCardTitle" style="--y:560">
+        <p class="card-title" id="simCardTitle">Level 1</p>
+        <p class="card-text" id="simCardText">Watch the buttons light up. Then tap them in the same order.</p>
+        <button class="card-button" id="simCardButton">
+          <span id="simCardButtonText">Start</span>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h13M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+      </div>
+
       <button class="hot" data-go="map" data-loading aria-label="Back to the map" style="--x:0; --y:2450; --w:290; --h:282"></button>
     </div>
   </section>
 
-  <section class="screen picture" id="battle" data-theme="#c0f0e2" style="--top:#c0f0e2; --bottom:#64cae5">
-    <div class="stage" style="--iw:1536; --ih:2048">
-      <img class="pic" src="battle.webp" width="1536" height="2048" alt="Battleship Ducks">
-      <button class="hot" data-go="map" data-loading aria-label="Back to the map" style="--x:60; --y:1725; --w:232; --h:226; --r:116"></button>
+  <!-- Battleship Ducks: a playable memory game on your Battleship picture.
+       Your ducks stay in your picture; each one is hidden under water copied from your own board. -->
+  <section class="screen picture" id="battle" data-theme="#b9f0dd" style="--top:#b9f0dd; --bottom:#62c8e3">
+    <div class="stage game bs" id="bs" style="--iw:1024; --ih:1366">
+      <img class="pic" src="battle-board.png" width="1024" height="1366" alt="Battleships: find all of the duck's ships">
+
+      <div id="bsCovers"></div>
+      <div id="bsMarks"></div>
+      <div class="area bs-board" id="bsBoard" aria-label="The board" style="--x:170; --y:405; --w:722; --h:624"></div>
+      <img class="bs-aim" id="bsAim" src="crosshair.png" alt="">
+
+      <div class="pill" id="bsPill" aria-live="polite" style="--x:512; --y:272">
+        <span>Level <b id="bsLevelNo">1</b></span>
+        <span class="dots" id="bsDots"><i></i><i></i><i></i></span>
+        <span class="say" id="bsSay"></span>
+      </div>
+
+      <button class="hot bs-fire" id="bsFire" aria-label="Fire" style="--x:782; --y:1121; --w:205; --h:205; --r:103"></button>
+
+      <div class="veil" style="--x:172; --y:362; --w:720; --h:672"></div>
+      <div class="card" role="dialog" aria-labelledby="bsCardTitle" style="--y:540">
+        <p class="card-title" id="bsCardTitle">Level 1</p>
+        <p class="card-text" id="bsCardText">Look where the ducks are. Then find them all!</p>
+        <button class="card-button" id="bsCardButton">
+          <span id="bsCardButtonText">Start</span>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h13M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+      </div>
+
+      <button class="hot" data-go="map" data-loading aria-label="Back to the map" style="--x:30; --y:1138; --w:180; --h:180; --r:90"></button>
     </div>
   </section>
 
   <!-- Colour Sudoku: a playable game built on your Sudoku picture.
        The board, the bins and the tray are all your picture; the game only moves pieces of it around. -->
   <section class="screen picture" id="sudoku" data-theme="#a2e7fd" style="--top:#a2e7fd; --bottom:#71d397">
-    <div class="stage sdk" id="sdk" style="--iw:1024; --ih:1366">
+    <div class="stage game sdk" id="sdk" style="--iw:1024; --ih:1366">
       <img class="pic" src="sudoku-board.png" width="1024" height="1366" alt="Color Sudoku">
 
       <div class="sdk-cells" id="sdkCells"></div>
 
-      <div class="sdk-level" id="sdkLevel" aria-live="polite">
-        <span class="sdk-level-text">Level <b id="sdkLevelNo">1</b></span>
-        <span class="sdk-dots" id="sdkDots"><i></i><i></i><i></i><i></i><i></i></span>
+      <div class="pill" id="sdkLevel" aria-live="polite" style="--x:512; --y:252; --w:280; --h:40">
+        <span>Level <b id="sdkLevelNo">1</b></span>
+        <span class="dots" id="sdkDots"><i></i><i></i><i></i><i></i><i></i></span>
       </div>
 
       <!-- the four bins in the tray: drag one onto an empty slot, or tap a bin and then a slot -->
@@ -408,11 +826,11 @@
       <button class="sdk-tray" data-color="G" aria-label="Green bin"  style="--x:527; --y:1125; --w:149; --h:160"></button>
       <button class="sdk-tray" data-color="R" aria-label="Red bin"    style="--x:707; --y:1125; --w:149; --h:160"></button>
 
-      <div class="sdk-veil" id="sdkVeil"></div>
-      <div class="sdk-card" id="sdkCard" role="dialog" aria-labelledby="sdkCardTitle">
-        <p class="sdk-card-title" id="sdkCardTitle">Great job!</p>
-        <p class="sdk-card-text" id="sdkCardText">Level 1 is done.</p>
-        <button class="sdk-card-button" id="sdkCardButton">
+      <div class="veil" style="--x:144; --y:296; --w:736; --h:762"></div>
+      <div class="card" role="dialog" aria-labelledby="sdkCardTitle">
+        <p class="card-title" id="sdkCardTitle">Great job!</p>
+        <p class="card-text" id="sdkCardText">Level 1 is done.</p>
+        <button class="card-button" id="sdkCardButton">
           <span id="sdkCardButtonText">Next level</span>
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h13M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </button>
@@ -463,12 +881,14 @@
       const prev = screens[current], next = screens[id];
       if (!next || prev === next) return;
       if (current !== 'loading') cameFrom = current;
+      if (onLeave[current]) onLeave[current]();
       prev.classList.remove('active');
       prev.classList.add('leaving');
       clearTimeout(prev.leaveTimer);
       prev.leaveTimer = setTimeout(() => prev.classList.remove('leaving'), 320);
       next.classList.add('active');
       current = id;
+      if (onEnter[id]) onEnter[id]();
       themeColor.setAttribute('content', next.dataset.theme);
     }
 
@@ -489,6 +909,11 @@
     // ---------- Map ----------
     // It opens centred on the Slug Says label and keeps the same spot in view when the screen size changes
     const MAP_START = 994; // in pixels of the 3606 x 1846 map
+    // the moving layer on the map is drawn in map pixels and scaled to the map's height on screen
+    function scaleLife() {
+      const el = document.getElementById('life');
+      el.style.setProperty('--k', el.parentElement.clientHeight / 1846);
+    }
     const scroller = document.getElementById('scroller');
     let spot = null, lastWidth = 0, lastScrollWidth = 0;
     const room = () => scroller.scrollWidth - scroller.clientWidth;
@@ -498,6 +923,7 @@
         spot = r > 0 ? Math.min(1, Math.max(0, (MAP_START * scale - scroller.clientWidth / 2) / r)) : 0;
       }
       scroller.scrollLeft = spot * room();
+      scaleLife();
       lastWidth = scroller.clientWidth;
       lastScrollWidth = scroller.scrollWidth;
     }
@@ -536,6 +962,180 @@
     scroller.addEventListener('click', e => {
       if (dragged) { e.stopPropagation(); e.preventDefault(); dragged = false; }
     }, true);
+
+    // ---------- The map comes to life ----------
+    // Your bus, bike and ambulance (cut from your map) and your red car drive along the roads.
+    // Roads are listed as points every 8 map pixels, traced from the roads in your map.
+    const ROUTES = {
+      bus: { loop: true, hidden: [[113, 206], [208, 212], [463, 477], [479, 482], [665, 677]],
+        pts: [1040,521,1048,521,1056,522,1064,522,1072,522,1080,522,1088,523,1096,523,1104,523,1112,523,1120,524,1128,524,1136,524,1144,524,1152,525,1160,525,1168,525,1176,526,1184,526,1192,526,1200,526,1208,527,1216,527,1223,527,1231,528,1239,528,1247,528,1255,529,1263,529,1271,530,1279,530,1287,530,1295,531,1303,531,1311,532,1319,533,1327,534,1335,536,1343,538,1350,540,1358,542,1366,545,1373,548,1381,551,1388,554,1395,557,1403,560,1410,563,1418,566,1425,568,1433,571,1441,573,1448,574,1456,576,1464,577,1472,579,1480,580,1488,581,1496,582,1504,582,1512,583,1520,584,1528,584,1536,585,1544,585,1552,586,1560,586,1568,587,1575,589,1583,592,1591,594,1598,597,1606,599,1614,599,1622,600,1630,600,1638,600,1646,600,1654,600,1662,598,1670,596,1677,594,1685,592,1693,591,1701,590,1709,590,1717,591,1725,591,1733,591,1741,591,1749,592,1757,592,1765,592,1773,592,1781,592,1789,592,1797,593,1805,593,1813,594,1820,596,1828,599,1835,603,1842,607,1848,612,1854,617,1861,621,1869,622,1877,623,1885,622,1893,621,1901,620,1909,620,1917,620,1925,620,1933,620,1941,620,1949,620,1957,620,1965,620,1973,620,1981,620,1989,620,1997,620,2005,620,2013,620,2021,621,2029,621,2037,621,2045,621,2053,621,2061,621,2069,621,2077,621,2085,621,2093,621,2101,621,2109,621,2117,621,2125,622,2133,622,2141,622,2149,622,2157,622,2165,622,2173,622,2181,622,2189,622,2197,622,2205,622,2213,622,2221,623,2229,623,2237,623,2245,623,2253,623,2261,623,2269,623,2277,623,2285,623,2293,623,2301,623,2309,623,2317,622,2325,621,2333,620,2341,619,2349,618,2356,617,2364,617,2372,618,2380,618,2388,618,2396,618,2404,618,2412,618,2420,618,2428,619,2436,619,2444,620,2452,621,2460,622,2468,623,2476,623,2484,623,2492,623,2500,623,2508,623,2516,623,2524,623,2532,622,2540,622,2548,622,2556,622,2564,623,2572,623,2580,623,2588,623,2596,623,2604,623,2612,623,2620,623,2628,623,2636,623,2644,624,2652,624,2660,625,2668,626,2676,626,2684,627,2692,628,2700,630,2708,631,2715,633,2723,635,2731,637,2738,640,2746,643,2753,646,2760,650,2767,654,2773,659,2779,664,2785,670,2790,676,2795,682,2799,689,2803,696,2807,703,2810,711,2813,718,2816,726,2818,733,2821,741,2824,748,2828,755,2832,762,2837,768,2842,775,2847,781,2853,786,2859,791,2866,795,2873,798,2881,801,2889,802,2897,804,2904,806,2912,807,2920,809,2928,810,2936,811,2944,812,2952,813,2960,814,2968,815,2976,815,2984,816,2992,817,3000,818,3007,819,3015,820,3023,822,3031,823,3039,825,3047,827,3054,830,3062,832,3069,836,3076,839,3083,843,3090,847,3097,852,3103,857,3109,862,3114,868,3120,874,3124,880,3129,887,3132,894,3135,902,3138,909,3140,917,3141,925,3142,933,3143,941,3144,949,3144,957,3145,965,3145,973,3145,981,3145,989,3145,997,3144,1005,3144,1013,3144,1021,3144,1029,3144,1037,3143,1045,3143,1053,3143,1061,3142,1069,3142,1077,3142,1085,3141,1093,3141,1101,3140,1109,3139,1116,3135,1124,3130,1129,3122,1132,3115,1134,3107,1134,3099,1135,3091,1135,3083,1135,3075,1135,3067,1136,3059,1136,3051,1136,3043,1136,3035,1136,3027,1136,3019,1136,3011,1136,3003,1136,2995,1136,2987,1136,2979,1136,2971,1136,2963,1137,2955,1137,2947,1137,2939,1137,2931,1137,2923,1137,2915,1137,2907,1137,2899,1137,2891,1137,2883,1137,2875,1137,2867,1137,2859,1137,2851,1138,2843,1138,2835,1138,2827,1139,2819,1139,2811,1141,2803,1142,2795,1144,2788,1147,2780,1150,2773,1154,2767,1158,2760,1163,2754,1167,2747,1172,2740,1176,2732,1179,2725,1181,2717,1183,2709,1184,2701,1184,2693,1185,2685,1185,2677,1185,2669,1185,2661,1185,2653,1185,2645,1184,2637,1184,2629,1184,2621,1184,2613,1184,2605,1184,2597,1184,2589,1183,2581,1183,2573,1183,2565,1183,2557,1183,2549,1182,2541,1182,2533,1182,2525,1182,2517,1182,2509,1182,2501,1181,2493,1181,2485,1181,2477,1181,2469,1181,2461,1181,2453,1181,2445,1181,2437,1181,2429,1181,2421,1181,2413,1181,2405,1181,2397,1181,2389,1181,2381,1182,2373,1182,2365,1182,2357,1182,2349,1182,2341,1182,2333,1182,2325,1183,2317,1183,2309,1183,2301,1183,2293,1183,2285,1184,2277,1184,2269,1184,2261,1185,2253,1185,2245,1186,2238,1189,2232,1194,2228,1201,2226,1209,2225,1217,2224,1225,2223,1233,2223,1241,2222,1249,2222,1257,2222,1265,2222,1273,2222,1281,2222,1289,2221,1297,2221,1305,2221,1313,2221,1321,2221,1329,2221,1337,2221,1345,2221,1353,2221,1361,2221,1369,2221,1377,2221,1385,2221,1393,2221,1401,2221,1409,2221,1417,2221,1425,2221,1433,2221,1441,2221,1449,2221,1457,2221,1465,2221,1473,2221,1481,2221,1489,2220,1497,2219,1505,2218,1513,2215,1520,2212,1528,2209,1535,2204,1541,2199,1547,2193,1553,2186,1557,2179,1561,2172,1564,2164,1566,2156,1568,2148,1569,2140,1570,2132,1570,2124,1571,2116,1571,2108,1571,2100,1571,2092,1570,2084,1570,2076,1570,2068,1570,2060,1569,2052,1569,2044,1568,2037,1568,2029,1567,2021,1567,2013,1566,2005,1566,1997,1565,1989,1565,1981,1564,1973,1563,1965,1562,1957,1562,1949,1561,1941,1560,1933,1560,1925,1559,1917,1558,1909,1558,1901,1557,1893,1556,1885,1556,1877,1555,1869,1555,1861,1555,1853,1554,1845,1554,1837,1554,1829,1553,1821,1553,1813,1553,1805,1553,1797,1554,1789,1555,1781,1556,1773,1557,1766,1559,1758,1562,1750,1565,1743,1568,1736,1572,1730,1577,1724,1582,1718,1587,1712,1593,1707,1599,1702,1605,1697,1611,1692,1618,1686,1624,1681,1629,1674,1634,1667,1638,1660,1642,1653,1644,1645,1646,1637,1648,1629,1648,1621,1649,1613,1649,1605,1649,1597,1649,1589,1649,1581,1649,1573,1649,1565,1649,1557,1649,1549,1649,1541,1649,1533,1649,1525,1649,1517,1649,1509,1649,1501,1649,1493,1649,1485,1649,1477,1649,1469,1650,1461,1650,1453,1650,1445,1651,1437,1651,1429,1651,1421,1651,1413,1651,1405,1652,1397,1652,1389,1652,1381,1652,1373,1652,1365,1652,1357,1652,1349,1653,1341,1653,1333,1653,1325,1653,1317,1653,1309,1652,1301,1652,1293,1652,1285,1652,1277,1652,1269,1652,1261,1651,1253,1651,1245,1650,1237,1650,1229,1649,1221,1648,1213,1647,1206,1646,1198,1645,1190,1644,1182,1642,1174,1641,1166,1639,1159,1637,1151,1634,1143,1631,1136,1628,1129,1624,1122,1620,1116,1615,1110,1610,1104,1604,1099,1598,1094,1592,1090,1585,1086,1578,1083,1571,1081,1563,1079,1555,1077,1547,1076,1539,1076,1531,1075,1523,1075,1515,1075,1507,1075,1499,1075,1492,1075,1484,1074,1476,1074,1468,1074,1460,1074,1452,1074,1444,1074,1436,1074,1428,1074,1420,1074,1412,1074,1404,1074,1396,1074,1388,1074,1380,1074,1372,1074,1364,1075,1356,1075,1348,1075,1340,1075,1332,1075,1324,1075,1316,1075,1308,1075,1300,1075,1292,1075,1284,1075,1276,1075,1268,1075,1260,1075,1252,1075,1244,1075,1236,1075,1228,1075,1220,1075,1212,1075,1204,1075,1196,1075,1188,1075,1180,1074,1172,1074,1164,1073,1156,1072,1148,1070,1140,1065,1133,1059,1128,1052,1125,1044,1124,1036,1124,1028,1124,1020,1125,1012,1127,1004,1128,996,1129,988,1129,980,1130,973,1130,965,1131,957,1131,949,1131,941,1131,933,1131,925,1132,917,1132,909,1132,901,1132,893,1132,885,1132,877,1132,869,1132,861,1131,853,1131,845,1131,837,1131,829,1131,821,1131,813,1131,805,1131,797,1131,789,1131,781,1131,773,1130,765,1130,757,1130,749,1130,741,1130,733,1130,725,1130,717,1130,709,1130,701,1130,693,1129,685,1129,677,1129,669,1129,661,1129,653,1129,645,1129,637,1129,629,1129,621,1129,613,1129,605,1129,597,1129,589,1129,581,1129,573,1130,565,1130,557,1130,549,1130,541,1130,533,1130,525,1130,517,1130,509,1130,501,1130,493,1130,485,1130,477,1129,469,1129,461,1127,453,1126,445,1123,438,1121,430,1117,423,1114,417,1109,410,1105,404,1099,398,1094,393,1088,388,1082,384,1075,380,1068,376,1061,373,1053,371,1046,369,1038,367,1030,365,1022,364,1014,363,1007,363,999,362,991,362,983,362,975,361,967,361,959,361,951,362,943,362,935,363,927,363,919,364,911,365,903,366,895,368,887,370,879,372,872,375,864,378,857,381,849,385,842,390,836,395,830,400,824,406,818,412,813,418,808,425,803,432,799,439,795,446,792,453,789,461,786,468,783,475,780,483,777,491,775,498,772,506,769,513,766,521,764,528,761,536,758,543,755,550,751,557,748,564,744,571,739,576,733,580,726,584,719,588,712,592,705,597,699,602,693,608,688,615,684,622,680,629,676,636,673,644,670,651,667,659,665,667,663,674,661,682,660,690,658,698,657,706,657,714,657,722,658,730,659,738,660,746,661,754,664,761,667,768,670,775,675,781,680,788,684,795,687,803,685,810,681,816,676,822,671,829,667,836,662,843,658,849,654,855,649,861,643,866,637,871,630,875,623,879,616,882,609,885,602,889,595,892,587,896,580,900,573,905,567,910,561,916,556,922,551,929,546,936,542,943,539,950,536,958,533,966,531,973,529,981,527,989,526,997,525,1005,524,1013,523,1021,522,1029,522] },
+      bike: { loop: true, hidden: [[85, 99], [101, 104], [287, 385]],
+        pts: [1926,1083,1934,1083,1942,1084,1950,1084,1958,1085,1966,1085,1974,1085,1982,1086,1990,1086,1998,1086,2006,1086,2014,1086,2022,1086,2030,1086,2038,1086,2046,1086,2054,1086,2062,1086,2070,1086,2078,1086,2086,1086,2094,1087,2102,1088,2110,1088,2118,1090,2125,1091,2133,1093,2141,1095,2149,1097,2156,1100,2163,1104,2170,1108,2177,1113,2183,1118,2188,1123,2194,1129,2199,1136,2203,1142,2208,1149,2212,1155,2216,1162,2220,1169,2224,1176,2227,1184,2228,1192,2227,1200,2226,1208,2225,1216,2224,1223,2223,1231,2223,1239,2223,1247,2222,1255,2222,1263,2222,1271,2222,1279,2222,1287,2221,1295,2221,1303,2221,1311,2221,1319,2221,1327,2221,1335,2221,1343,2221,1351,2221,1359,2221,1367,2221,1375,2221,1383,2221,1391,2221,1399,2221,1407,2221,1415,2221,1423,2221,1431,2221,1439,2221,1447,2221,1455,2221,1463,2221,1471,2221,1479,2221,1487,2220,1495,2219,1503,2218,1511,2216,1519,2213,1526,2209,1534,2205,1540,2200,1546,2194,1552,2187,1556,2180,1560,2173,1563,2165,1566,2158,1567,2150,1569,2142,1570,2134,1570,2126,1571,2118,1571,2110,1571,2102,1571,2094,1570,2086,1570,2078,1570,2070,1570,2062,1569,2054,1569,2046,1568,2038,1568,2030,1567,2022,1567,2014,1566,2006,1566,1998,1565,1990,1565,1982,1564,1974,1563,1966,1562,1958,1562,1950,1561,1942,1560,1934,1560,1926,1559,1918,1558,1910,1558,1902,1557,1894,1556,1886,1556,1878,1555,1870,1555,1862,1555,1854,1554,1846,1554,1838,1554,1830,1553,1822,1553,1814,1553,1806,1553,1798,1554,1790,1554,1783,1556,1775,1557,1767,1559,1759,1561,1752,1564,1744,1567,1738,1571,1731,1576,1725,1581,1719,1586,1713,1592,1708,1598,1703,1604,1698,1610,1693,1617,1687,1623,1682,1628,1675,1633,1669,1637,1662,1641,1654,1644,1646,1646,1638,1647,1631,1648,1623,1649,1615,1649,1607,1649,1599,1649,1591,1649,1583,1649,1575,1649,1567,1649,1559,1649,1551,1649,1543,1649,1535,1649,1527,1649,1519,1649,1511,1649,1503,1649,1495,1649,1487,1649,1479,1649,1471,1650,1463,1650,1455,1650,1447,1651,1439,1651,1431,1651,1423,1651,1415,1651,1407,1652,1399,1652,1391,1652,1383,1652,1375,1652,1367,1652,1359,1652,1351,1653,1343,1653,1335,1653,1327,1653,1319,1653,1311,1652,1303,1652,1295,1652,1287,1652,1279,1652,1271,1652,1263,1651,1255,1651,1247,1650,1239,1650,1231,1649,1223,1648,1215,1647,1207,1646,1199,1645,1191,1644,1183,1643,1175,1641,1168,1639,1160,1637,1152,1635,1145,1632,1137,1629,1130,1625,1123,1621,1117,1616,1111,1611,1105,1605,1100,1599,1095,1593,1091,1586,1087,1579,1084,1572,1081,1564,1079,1557,1078,1549,1077,1541,1076,1533,1075,1525,1075,1517,1075,1509,1075,1501,1075,1493,1075,1485,1075,1477,1074,1469,1074,1461,1074,1453,1074,1445,1074,1437,1074,1429,1074,1421,1074,1413,1074,1405,1074,1397,1074,1389,1074,1381,1074,1373,1074,1365,1074,1357,1075,1349,1075,1341,1075,1333,1075,1325,1075,1317,1075,1309,1075,1301,1075,1293,1075,1285,1075,1277,1075,1269,1075,1261,1075,1253,1075,1245,1075,1237,1075,1229,1075,1221,1075,1213,1075,1205,1075,1197,1075,1189,1075,1181,1075,1173,1074,1165,1073,1157,1072,1149,1072,1141,1074,1133,1078,1127,1084,1122,1092,1119,1099,1116,1107,1113,1114,1110,1121,1107,1128,1103,1135,1099,1142,1094,1149,1090,1156,1087,1164,1085,1171,1083,1179,1082,1187,1081,1195,1080,1203,1079,1211,1079,1219,1078,1227,1078,1235,1077,1243,1077,1251,1077,1259,1076,1267,1076,1275,1076,1283,1076,1291,1075,1299,1075,1307,1075,1315,1075,1323,1075,1331,1075,1339,1075,1347,1075,1355,1075,1363,1075,1371,1075,1379,1075,1387,1075,1395,1075,1403,1075,1411,1075,1419,1075,1427,1075,1435,1075,1443,1075,1451,1075,1459,1075,1467,1075,1475,1075,1483,1075,1491,1075,1499,1075,1507,1076,1515,1076,1523,1076,1531,1076,1539,1076,1547,1076,1555,1076,1563,1076,1571,1076,1579,1076,1587,1076,1595,1076,1603,1077,1611,1077,1619,1077,1627,1077,1635,1077,1643,1077,1651,1077,1659,1077,1667,1077,1675,1078,1683,1078,1691,1078,1699,1078,1707,1078,1715,1078,1723,1078,1731,1078,1739,1078,1747,1078,1755,1078,1763,1078,1771,1078,1779,1079,1787,1079,1795,1079,1803,1078,1811,1078,1819,1077,1827,1076,1835,1075,1843,1073,1851,1072,1859,1072,1867,1072,1874,1074,1882,1076,1890,1077,1898,1079,1906,1080,1914,1081,1922,1082] },
+      amb: { loop: false, hidden: [[245, 342], [526, 528], [531, 544]],
+        pts: [3695,1172,3687,1172,3679,1172,3671,1172,3663,1172,3655,1171,3647,1171,3639,1171,3631,1171,3623,1171,3615,1171,3607,1171,3599,1171,3591,1171,3583,1171,3575,1170,3567,1170,3559,1170,3551,1170,3543,1170,3535,1170,3527,1170,3519,1170,3511,1170,3503,1170,3495,1169,3487,1168,3479,1167,3471,1166,3463,1165,3456,1163,3448,1161,3440,1159,3433,1157,3425,1154,3417,1152,3410,1149,3403,1145,3396,1142,3388,1139,3380,1137,3373,1135,3365,1135,3357,1134,3349,1134,3341,1134,3333,1135,3325,1136,3317,1136,3309,1137,3301,1138,3293,1138,3285,1138,3277,1139,3269,1139,3261,1139,3253,1139,3245,1139,3237,1139,3229,1139,3221,1138,3213,1138,3205,1138,3197,1138,3189,1138,3181,1137,3173,1137,3165,1135,3157,1134,3149,1132,3141,1131,3133,1131,3125,1132,3117,1133,3109,1134,3101,1135,3094,1135,3086,1135,3078,1135,3070,1135,3062,1136,3054,1136,3046,1136,3038,1136,3030,1136,3022,1136,3014,1136,3006,1136,2998,1136,2990,1136,2982,1136,2974,1136,2966,1137,2958,1137,2950,1137,2942,1137,2934,1137,2926,1137,2918,1137,2910,1137,2902,1137,2894,1137,2886,1137,2878,1137,2870,1137,2862,1137,2854,1137,2846,1138,2838,1138,2830,1139,2822,1139,2814,1140,2806,1142,2798,1143,2790,1146,2783,1149,2776,1152,2769,1156,2762,1161,2756,1166,2749,1170,2742,1174,2735,1178,2728,1180,2720,1182,2712,1183,2704,1184,2696,1185,2688,1185,2680,1185,2672,1185,2664,1185,2656,1185,2648,1185,2640,1184,2632,1184,2624,1184,2616,1184,2608,1184,2600,1184,2592,1183,2584,1183,2576,1183,2568,1183,2560,1183,2552,1183,2544,1182,2536,1182,2528,1182,2520,1182,2512,1182,2504,1182,2496,1181,2488,1181,2480,1181,2472,1181,2464,1181,2456,1181,2448,1181,2440,1181,2432,1181,2424,1181,2416,1181,2408,1181,2400,1181,2392,1181,2384,1182,2376,1182,2368,1182,2360,1182,2352,1182,2344,1182,2336,1182,2328,1183,2320,1183,2312,1183,2304,1183,2296,1183,2288,1184,2280,1184,2272,1184,2264,1185,2256,1185,2248,1186,2240,1185,2233,1182,2226,1177,2222,1171,2217,1164,2213,1157,2209,1150,2205,1144,2200,1137,2195,1131,2190,1125,2184,1119,2178,1114,2172,1109,2165,1105,2158,1101,2151,1098,2143,1096,2135,1093,2128,1092,2120,1090,2112,1089,2104,1088,2096,1087,2088,1086,2080,1086,2072,1086,2064,1086,2056,1086,2048,1086,2040,1086,2032,1086,2024,1086,2016,1086,2008,1086,2000,1086,1992,1086,1984,1086,1976,1085,1968,1085,1960,1085,1952,1084,1944,1084,1936,1084,1928,1083,1920,1082,1912,1081,1904,1080,1896,1078,1888,1077,1881,1075,1873,1073,1865,1072,1857,1072,1849,1072,1841,1073,1833,1075,1825,1076,1817,1077,1810,1078,1802,1078,1794,1079,1786,1079,1778,1079,1770,1078,1762,1078,1754,1078,1746,1078,1738,1078,1730,1078,1722,1078,1714,1078,1706,1078,1698,1078,1690,1078,1682,1078,1674,1078,1666,1077,1658,1077,1650,1077,1642,1077,1634,1077,1626,1077,1618,1077,1610,1077,1602,1077,1594,1076,1586,1076,1578,1076,1570,1076,1562,1076,1554,1076,1546,1076,1538,1076,1530,1076,1522,1076,1514,1076,1506,1076,1498,1075,1490,1075,1482,1075,1474,1075,1466,1075,1458,1075,1450,1075,1442,1075,1434,1075,1426,1075,1418,1075,1410,1075,1402,1075,1394,1075,1386,1075,1378,1075,1370,1075,1362,1075,1354,1075,1346,1075,1338,1075,1330,1075,1322,1075,1314,1075,1306,1075,1298,1075,1290,1075,1282,1076,1274,1076,1266,1076,1258,1076,1250,1077,1242,1077,1234,1077,1226,1078,1218,1078,1210,1079,1202,1079,1194,1080,1186,1081,1178,1082,1170,1083,1162,1085,1155,1088,1147,1091,1140,1095,1134,1100,1127,1104,1120,1108,1113,1111,1105,1114,1098,1116,1090,1119,1083,1123,1077,1128,1073,1135,1072,1143,1073,1151,1073,1159,1074,1166,1075,1174,1075,1182,1075,1190,1075,1198,1075,1206,1075,1214,1075,1222,1075,1230,1075,1238,1075,1246,1075,1254,1075,1262,1075,1270,1075,1278,1075,1286,1075,1294,1075,1302,1075,1310,1075,1318,1075,1326,1075,1334,1075,1342,1075,1350,1074,1358,1074,1366,1074,1374,1074,1382,1074,1390,1074,1398,1074,1406,1074,1414,1074,1422,1074,1430,1074,1438,1074,1446,1074,1454,1074,1462,1074,1470,1075,1478,1075,1486,1075,1494,1075,1502,1075,1510,1075,1518,1075,1526,1076,1534,1077,1542,1078,1550,1080,1558,1082,1566,1084,1573,1088,1581,1092,1588,1096,1594,1101,1601,1106,1607,1112,1612,1118,1617,1125,1622,1132,1626,1139,1629,1146,1632,1154,1635,1161,1638,1169,1640,1177,1641,1185,1643,1193,1644,1201,1646,1208,1647,1216,1648,1224,1649,1232,1649,1240,1650,1248,1651,1256,1651,1264,1651,1272,1652,1280,1652,1288,1652,1296,1652,1304,1652,1312,1653,1320,1653,1328,1653,1336,1653,1344,1653,1352,1652,1360,1652,1368,1652,1376,1652,1384,1652,1392,1652,1400,1652,1408,1652,1416,1651,1424,1651,1432,1651,1440,1651,1448,1650,1456,1650,1464,1650,1472,1650,1480,1649,1488,1649,1496,1649,1504,1649,1512,1649,1520,1649,1528,1649,1536,1649,1544,1649,1552,1649,1560,1649,1568,1649,1576,1649,1584,1649,1592,1649,1600,1649,1608,1649,1616,1649,1624,1649,1632,1648,1640,1647,1648,1646,1656,1643,1663,1640,1670,1637,1677,1632,1683,1627,1688,1621,1694,1615,1699,1609,1704,1603,1709,1597,1714,1591,1720,1585,1726,1580,1732,1575,1739,1571,1746,1567,1753,1563,1761,1561,1768,1559,1776,1557,1784,1555,1792,1554,1800,1554,1808,1553,1816,1553,1824,1553,1832,1553,1840,1554,1848,1554,1856,1554,1864,1555,1872,1555,1880,1556,1888,1556,1896,1557,1904,1557,1912,1558,1920,1559,1928,1559,1936,1560,1944,1560,1952,1561,1960,1562,1968,1563,1976,1563,1984,1564,1992,1565,2000,1565,2008,1566,2016,1566,2023,1567,2031,1567,2039,1568,2047,1568,2055,1569,2063,1569,2071,1570,2079,1570,2087,1570,2095,1570,2103,1571,2111,1571,2119,1571,2127,1571,2135,1570,2143,1569,2151,1568,2159,1567,2167,1565,2175,1563,2182,1560,2189,1556,2195,1551,2201,1545,2206,1539,2210,1532,2214,1525,2216,1517,2218,1510,2220,1502,2220,1494,2221,1486,2221,1478,2221,1470,2221,1462,2221,1454,2221,1446,2221,1438,2221,1430,2221,1422,2221,1414,2221,1406,2221,1398,2221,1390,2221,1382,2221,1374,2221,1366,2221,1358,2221,1350,2221,1342,2221,1334,2221,1326,2221,1318,2221,1310,2221,1302,2221,1294,2222,1286,2222,1278,2222,1270,2222,1262,2222,1254,2223,1246,2223,1238,2223,1230,2224,1222,2225,1214,2226,1206,2229,1199,2234,1192,2240,1188,2248,1186,2256,1185,2264,1185,2272,1184,2280,1184,2288,1184,2296,1183,2304,1183,2312,1183,2320,1183,2328,1183,2336,1182,2344,1182,2352,1182,2360,1182,2368,1182,2376,1182,2384,1182,2392,1181,2400,1181,2408,1181,2416,1181,2424,1181,2432,1181,2440,1181,2448,1181,2456,1181,2464,1181,2472,1181,2480,1181,2488,1181,2496,1181,2504,1182,2512,1182,2520,1182,2528,1182,2536,1182,2544,1182,2552,1183,2560,1183,2568,1183,2576,1183,2584,1183,2592,1183,2600,1184,2608,1184,2616,1184,2624,1184,2632,1184,2640,1184,2648,1185,2656,1185,2664,1185,2672,1185,2680,1185,2688,1185,2696,1185,2704,1184,2712,1183,2720,1182,2728,1180,2735,1178,2742,1174,2749,1170,2756,1166,2762,1161,2769,1156,2776,1152,2783,1149,2790,1146,2798,1143,2806,1142,2814,1140,2822,1139,2830,1139,2838,1138,2846,1138,2854,1137,2862,1137,2870,1137,2878,1137,2886,1137,2894,1137,2902,1137,2910,1137,2918,1137,2926,1137,2934,1137,2942,1137,2950,1137,2958,1137,2966,1137,2974,1136,2982,1136,2990,1136,2998,1136,3006,1136,3014,1136,3022,1136,3030,1136,3038,1136,3046,1136,3054,1136,3062,1136,3070,1135,3078,1135,3086,1135,3094,1135,3102,1135,3109,1134,3117,1133,3125,1132,3133,1131,3141,1131,3149,1132,3157,1134,3165,1135,3173,1136,3181,1137,3189,1138,3197,1138,3205,1138,3213,1138,3221,1138,3229,1139,3237,1139,3245,1139,3253,1139,3261,1139,3269,1139,3277,1139,3285,1138,3293,1138,3301,1138,3309,1137,3317,1136,3325,1136,3333,1135,3341,1134,3349,1134,3357,1134,3365,1135,3373,1135,3380,1137,3388,1139,3396,1142,3403,1145,3410,1149,3417,1152,3425,1154,3433,1157,3440,1159,3448,1161,3456,1163,3463,1165,3471,1166,3479,1167,3487,1168,3495,1169,3503,1170,3511,1170,3519,1170,3527,1170,3535,1170,3543,1170,3551,1170,3559,1170,3567,1170,3575,1170,3583,1171,3591,1171,3599,1171,3607,1171,3615,1171,3623,1171,3631,1171,3639,1171,3647,1171,3655,1171,3663,1172,3671,1172,3679,1172,3687,1172] },
+    };
+    const VEHICLES = [
+      // speed in map pixels per second; lane = how far right of the middle of the road; face = which way the picture faces
+      { id: 'mvBus',  route: 'bus',  speed: 85,  lane: 15, face: 1,  size: 184, from: [1182, 544], stop: [3140, 960, 2600], bob: 1.2 },
+      { id: 'mvCar',  route: 'car',  speed: 118, lane: 15, face: 1,  size: 162, startNear: [1480, 562], bob: 1.0 },
+      { id: 'mvBike', route: 'bike', speed: 52,  lane: 31, face: 1,  size: 130, from: [2010, 1147], bob: 1.6, bike: true },
+      { id: 'mvAmb',  route: 'amb',  speed: 128, lane: 15, face: -1, size: 218, from: [3328, 1111], rest: 7000, bob: 0.8 },
+    ];
+    const life = document.getElementById('life');
+    const calm = matchMedia('(prefers-reduced-motion: reduce)');
+
+    function makeRoute(r, reverse) {
+      const n = r.pts.length / 2, xs = new Float32Array(n), ys = new Float32Array(n), hid = new Uint8Array(n);
+      for (let i = 0; i < n; i++) { xs[i] = r.pts[2 * i]; ys[i] = r.pts[2 * i + 1]; }
+      r.hidden.forEach(([a, b]) => hid.fill(1, a, b));
+      if (reverse) { xs.reverse(); ys.reverse(); hid.reverse(); }
+      const s = new Float32Array(n);
+      for (let i = 1; i < n; i++) s[i] = s[i - 1] + Math.hypot(xs[i] - xs[i - 1], ys[i] - ys[i - 1]);
+      const len = r.loop ? s[n - 1] + Math.hypot(xs[0] - xs[n - 1], ys[0] - ys[n - 1]) : s[n - 1];
+      // how sharp the road bends at each point, so vehicles slow down in curves
+      const bend = new Float32Array(n), k = 3;
+      for (let i = 0; i < n; i++) {
+        const a = r.loop ? (i - k + n) % n : Math.max(0, i - k), b = r.loop ? (i + k) % n : Math.min(n - 1, i + k);
+        const a1 = Math.atan2(ys[i] - ys[a], xs[i] - xs[a]), a2 = Math.atan2(ys[b] - ys[i], xs[b] - xs[i]);
+        let t = Math.abs(a2 - a1); if (t > Math.PI) t = 2 * Math.PI - t;
+        bend[i] = (a === i || b === i) ? 0 : t;
+      }
+      return { xs, ys, s, n, len, loop: r.loop, hid, bend };
+    }
+    const routes = { bus: makeRoute(ROUTES.bus), car: makeRoute(ROUTES.bus, true), bike: makeRoute(ROUTES.bike), amb: makeRoute(ROUTES.amb) };
+    function nearest(rt, x, y) {
+      let best = 0, bd = Infinity;
+      for (let i = 0; i < rt.n; i++) { const d = (rt.xs[i] - x) ** 2 + (rt.ys[i] - y) ** 2; if (d < bd) { bd = d; best = i; } }
+      return best;
+    }
+    // position and direction at a distance along the road
+    function pointAt(rt, d, v) {
+      if (rt.loop) d = ((d % rt.len) + rt.len) % rt.len; else d = Math.max(0, Math.min(rt.len - .01, d));
+      let i = v.i || 0;
+      if (rt.s[i] > d) i = 0;
+      while (i < rt.n - 1 && rt.s[i + 1] <= d) i++;
+      v.i = i;
+      const j = i + 1 < rt.n ? i + 1 : 0;
+      const segEnd = i + 1 < rt.n ? rt.s[i + 1] : rt.len;
+      const t = (d - rt.s[i]) / Math.max(.001, segEnd - rt.s[i]);
+      const x = rt.xs[i] + (rt.xs[j] - rt.xs[i]) * t, y = rt.ys[i] + (rt.ys[j] - rt.ys[i]) * t;
+      // heading smoothed over a few points
+      const a = rt.loop ? (i - 2 + rt.n) % rt.n : Math.max(0, i - 2), b = rt.loop ? (i + 3) % rt.n : Math.min(rt.n - 1, i + 3);
+      let hx = rt.xs[b] - rt.xs[a], hy = rt.ys[b] - rt.ys[a];
+      const h = Math.hypot(hx, hy) || 1; hx /= h; hy /= h;
+      return { x, y, hx, hy, i };
+    }
+    const movers = VEHICLES.map(c => {
+      const rt = routes[c.route], el = document.getElementById(c.id);
+      const at = c.from || c.startNear;
+      const i0 = nearest(rt, at[0], at[1]);
+      const v = { c, rt, el, d: rt.s[i0], v: 0, f: 1, i: 0, x: at[0], y: at[1], hx: 1, hy: 0, wait: 0, blend: c.from ? 0 : 1, stopS: null, stopped: false, rest: 0 };
+      if (c.stop) v.stopS = rt.s[nearest(rt, c.stop[0], c.stop[1])];
+      return v;
+    });
+    function place(v, now) {
+      const bob = Math.sin(now / 1000 * (v.c.bike ? 9 : 6) + v.c.size) * v.c.bob * Math.min(1, v.v / 30);
+      v.el.style.transform = `translate3d(${v.x.toFixed(1)}px, ${(v.y + bob).toFixed(1)}px, 0) scaleX(${v.f.toFixed(3)})`;
+      v.el.style.zIndex = Math.round(v.y);
+    }
+    movers.forEach(v => place(v, 0));
+
+    let lifeOn = false, lifeLast = 0, lifeFrame = 0, startedAt = 0;
+    function lifeStep(now) {
+      if (!lifeOn) return;
+      const dt = Math.min(.05, (now - lifeLast) / 1000 || 0);
+      lifeLast = now;
+      for (const v of movers) {
+        const { c, rt } = v;
+        if (v.rest) {                                    // the ambulance waits off the map, then comes back
+          if (now < v.rest) continue;
+          v.rest = 0; v.d = 0; v.i = 0; v.v = c.speed * .8;
+        }
+        const p = pointAt(rt, v.d, v);
+        // how fast it would like to go here
+        let want = c.speed * (1 - .5 * Math.min(1, rt.bend[p.i] / .55));
+        if (rt.hid[p.i]) want *= 2.2;                    // nobody sees it behind a label, so it hurries
+        if (now - startedAt < 900) want = 0;             // everything starts off still, just like your map
+        else if (!life.classList.contains('go')) life.classList.add('go');
+        if (v.stopS !== null) {                          // the bus stops at the bus stop
+          let ahead = v.stopS - v.d; if (ahead < -rt.len / 2) ahead += rt.len; if (ahead > rt.len / 2) ahead -= rt.len;
+          if (ahead > 0 && ahead < 110) want = Math.min(want, 8 + c.speed * ahead / 110);
+          if (ahead <= 0 && ahead > -6 && !v.stopped) { v.stopped = true; v.wait = now + c.stop[2]; v.v = 0; }
+          if (ahead < -40) v.stopped = false;
+          if (v.wait > now) want = 0;
+        }
+        // don't drive into the vehicle in front (the bike keeps to the side of the road)
+        if (!c.bike) for (const o of movers) {
+          if (o === v || o.c.bike || o.rest) continue;
+          const dx = o.x - v.x, dy = o.y - v.y;
+          const ahead = dx * v.hx + dy * v.hy, side = Math.abs(dx * v.hy - dy * v.hx);
+          if (ahead > 0 && side < 26 && o.hx * v.hx + o.hy * v.hy > .3) {
+            const gap = ahead - (c.size + o.c.size) / 2;
+            if (gap < 60) want = Math.min(want, Math.max(0, o.v * (gap / 60)));
+          }
+        }
+        v.v += Math.max(-260 * dt, Math.min(90 * dt, want - v.v));
+        v.d += v.v * dt;
+        if (!rt.loop && v.d >= rt.len) { v.rest = now + c.rest; v.d = rt.len - .01; }
+        if (rt.loop) v.d = ((v.d % rt.len) + rt.len) % rt.len;
+        const q = pointAt(rt, v.d, v);
+        // keep to the right-hand side of the road
+        let x = q.x - q.hy * c.lane, y = q.y + q.hx * c.lane;
+        if (v.blend < 1) {                              // glide from where it is parked in your map onto the road
+          v.blend = Math.min(1, v.blend + dt / 1.6);
+          const e = v.blend * v.blend * (3 - 2 * v.blend);
+          x = c.from[0] + (x - c.from[0]) * e; y = c.from[1] + (y - c.from[1]) * e;
+        }
+        v.x = x; v.y = y; v.hx = q.hx; v.hy = q.hy;
+        // turn the picture round when it drives the other way
+        if (Math.abs(q.hx) > .3) {
+          const target = Math.sign(q.hx) * c.face;
+          v.f += (target - v.f) * Math.min(1, dt * 7);
+          if (Math.abs(v.f) < .08) v.f = Math.sign(target) * .08;
+        }
+        place(v, now);
+      }
+      lifeFrame = requestAnimationFrame(lifeStep);
+    }
+
+    // The fisherman catches a fish every now and then
+    const fisher = document.getElementById('fisher');
+    let fishTimer = 0;
+    function nextFish(first) {
+      clearTimeout(fishTimer);
+      fishTimer = setTimeout(() => {
+        if (!lifeOn) return;
+        fisher.classList.remove('catch'); void fisher.offsetWidth; fisher.classList.add('catch');
+        setTimeout(() => fisher.classList.remove('catch'), 4500);
+        nextFish();
+      }, first ? 4000 : 9000 + Math.random() * 9000);
+    }
+
+    function lifeStart() {
+      if (lifeOn) return;
+      if (calm.matches) { life.classList.add('calm'); return; }
+      lifeOn = true;
+      life.classList.remove('paused', 'calm');
+      if (!startedAt) startedAt = performance.now();
+      lifeLast = performance.now();
+      lifeFrame = requestAnimationFrame(lifeStep);
+      nextFish(!fisher.dataset.done);
+      fisher.dataset.done = '1';
+    }
+    function lifeStop() {
+      lifeOn = false;
+      cancelAnimationFrame(lifeFrame);
+      clearTimeout(fishTimer);
+      life.classList.add('paused');
+    }
+    life.classList.add('paused');
+    calm.addEventListener('change', () => {
+      if (calm.matches) { lifeStop(); life.classList.add('calm'); }
+      else { life.classList.remove('calm'); if (current === 'map') lifeStart(); }
+    });
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) lifeStop(); else if (current === 'map') lifeStart();
+    });
 
     // ---------- Colour Sudoku ----------
     // Five puzzles (B = blue, Y = yellow, G = green, R = red, . = empty slot), read row by row.
@@ -758,6 +1358,451 @@
     sdk.addEventListener('contextmenu', e => e.preventDefault());
 
     sdkLoad(0);
+
+    // ---------- Shared bits for Slug Says and Battleship Ducks ----------
+    // A message in the level pill; it pops a little each time it changes
+    function say(el, text) {
+      if (el.textContent === text) return;
+      el.textContent = text;
+      el.classList.remove('pop');
+      void el.offsetWidth;
+      el.classList.add('pop');
+    }
+    function shake(el) {
+      el.classList.remove('shake');
+      void el.offsetWidth;
+      el.classList.add('shake');
+    }
+    // Timers that belong to one game, so leaving the screen can stop them all at once
+    function timerBox() {
+      const ids = new Set();
+      return {
+        later(fn, ms) { const id = setTimeout(() => { ids.delete(id); fn(); }, ms); ids.add(id); return id; },
+        clear() { ids.forEach(clearTimeout); ids.clear(); },
+      };
+    }
+    function setDots(dots, level) {
+      dots.forEach((d, i) => { d.className = i < level ? 'done' : i === level ? 'now' : ''; });
+    }
+
+    // ---------- Slug Says ----------
+    // Each level has 3 rounds. Every round repeats the lights so far and adds one more.
+    // Level 1 uses the timing of your own animation: a light stays on for half a second, with a short pause in between.
+    const SIM_LEVELS = [
+      { first: 1, rounds: 3, on: 500, gap: 200 },   // 1, then 2, then 3 lights
+      { first: 2, rounds: 3, on: 420, gap: 170 },   // 2, 3, 4
+      { first: 3, rounds: 3, on: 350, gap: 150 },   // 3, 4, 5
+    ];
+    const SIM_COLORS = ['green', 'red', 'yellow', 'blue'];
+    // Your pad in picture pixels: its oval, the dark middle, and where the four colours meet
+    const SIM_PAD = { cx: 1025, cy: 2288, rx: 505, ry: 330, hubX: 1028, hubY: 2262, hubRx: 118, hubRy: 74, splitX: 1030, splitY: 2257 };
+
+    const simStage = document.getElementById('sim');
+    const simPad = document.getElementById('simPad');
+    const simSay = document.getElementById('simSay');
+    const simPill = document.getElementById('simPill');
+    const simDots = [...document.getElementById('simDots').children];
+    const simLights = {};
+    simStage.querySelectorAll('.sim-light').forEach(img => { simLights[img.dataset.color] = img; });
+    const simTimers = timerBox();
+    const simon = { level: 0, round: 0, seq: [], pos: 0, state: 'ready' };
+
+    function simRandomColor(seq) {
+      let c;
+      do { c = SIM_COLORS[Math.floor(Math.random() * 4)]; }
+      while (seq.length >= 2 && seq[seq.length - 1] === c && seq[seq.length - 2] === c);   // never 3 the same in a row
+      return c;
+    }
+    function simAllOff() { Object.values(simLights).forEach(l => l.classList.remove('on')); }
+    function simFlash(color, ms) {
+      simLights[color].classList.add('on');
+      simTimers.later(() => simLights[color].classList.remove('on'), ms);
+    }
+    function simCard(title, text, button) {
+      document.getElementById('simCardTitle').textContent = title;
+      document.getElementById('simCardText').textContent = text;
+      document.getElementById('simCardButtonText').textContent = button;
+      simStage.classList.add('won');
+    }
+
+    function simLoad(n) {
+      simTimers.clear();
+      simAllOff();
+      const lv = SIM_LEVELS[n];
+      simon.level = n;
+      simon.round = 0;
+      simon.seq = [];
+      while (simon.seq.length < lv.first) simon.seq.push(simRandomColor(simon.seq));
+      simon.pos = 0;
+      simon.state = 'ready';
+      document.getElementById('simLevelNo').textContent = n + 1;
+      setDots(simDots, n);
+      simSay.textContent = '';
+    }
+    function simStart() {
+      simStage.classList.remove('won');
+      simon.state = 'watch';
+      say(simSay, 'Watch!');
+      simTimers.later(simPlay, 700);
+    }
+    // Light the sequence, then hand over to the child
+    function simPlay() {
+      const lv = SIM_LEVELS[simon.level];
+      simon.state = 'watch';
+      simon.pos = 0;
+      say(simSay, 'Watch!');
+      let t = 0;
+      simon.seq.forEach(color => {
+        simTimers.later(() => simFlash(color, lv.on), t);
+        t += lv.on + 50 + lv.gap;
+      });
+      simTimers.later(() => { simon.state = 'turn'; say(simSay, 'Your turn!'); }, t);
+    }
+    function simPress(color) {
+      if (simon.state !== 'turn') {
+        if (simon.state === 'watch') shake(simPill);
+        return;
+      }
+      if (color !== simon.seq[simon.pos]) {
+        simon.state = 'oops';
+        say(simSay, 'Oops! Watch again.');
+        shake(simPill);
+        simTimers.later(simPlay, 1500);
+        return;
+      }
+      simon.pos++;
+      if (simon.pos < simon.seq.length) return;
+      // the whole sequence is right
+      if (simon.round < SIM_LEVELS[simon.level].rounds - 1) {
+        simon.state = 'good';
+        say(simSay, simon.round === 0 ? 'Yes!' : 'Great!');
+        simTimers.later(() => {
+          simon.round++;
+          simon.seq.push(simRandomColor(simon.seq));
+          simPlay();
+        }, 1100);
+      } else {
+        simWin();
+      }
+    }
+    // Level done: all four buttons flash twice, like the end of your animation
+    function simWin() {
+      simon.state = 'won';
+      say(simSay, 'Well done!');
+      const all = simLights.all;
+      [450, 800].forEach(t => {
+        simTimers.later(() => all.classList.add('on'), t);
+        simTimers.later(() => all.classList.remove('on'), t + 200);
+      });
+      simDots[simon.level].className = 'done';
+      const last = simon.level === SIM_LEVELS.length - 1;
+      simTimers.later(() => simCard(
+        last ? 'You did it!' : 'Great job!',
+        last ? 'You finished all 3 levels.' : `Level ${simon.level + 1} is done.`,
+        last ? 'Play again' : 'Next level'), 1400);
+    }
+    document.getElementById('simCardButton').addEventListener('click', () => {
+      if (simon.state === 'won') simLoad(simon.level === SIM_LEVELS.length - 1 ? 0 : simon.level + 1);
+      if (simon.state === 'ready') simStart();
+    });
+
+    // Which colour is under the finger (in picture pixels), or none
+    function simColorAt(clientX, clientY) {
+      const r = simStage.getBoundingClientRect();
+      const x = (clientX - r.left) / r.width * 2048, y = (clientY - r.top) / r.width * 2048;
+      const p = SIM_PAD;
+      if (((x - p.cx) / p.rx) ** 2 + ((y - p.cy) / p.ry) ** 2 > 1) return null;
+      if (((x - p.hubX) / p.hubRx) ** 2 + ((y - p.hubY) / p.hubRy) ** 2 < 1) return null;
+      if (y < p.splitY) return x < p.splitX ? 'green' : 'red';
+      return x < p.splitX ? 'yellow' : 'blue';
+    }
+    // A button lights while it is pressed (at least a quarter of a second)
+    const simHeld = new Map();
+    simPad.addEventListener('pointerdown', e => {
+      e.preventDefault();
+      const color = simColorAt(e.clientX, e.clientY);
+      if (!color) return;
+      if (simon.state === 'turn') {
+        simLights[color].classList.add('on');
+        simHeld.set(e.pointerId, { color, since: performance.now() });
+      }
+      simPress(color);
+    });
+    const simRelease = e => {
+      const held = simHeld.get(e.pointerId);
+      if (!held) return;
+      simHeld.delete(e.pointerId);
+      const wait = Math.max(0, 250 - (performance.now() - held.since));
+      simTimers.later(() => {
+        if (![...simHeld.values()].some(h => h.color === held.color)) simLights[held.color].classList.remove('on');
+      }, wait);
+    };
+    simPad.addEventListener('pointerup', simRelease);
+    simPad.addEventListener('pointercancel', simRelease);
+    simPad.addEventListener('pointerleave', simRelease);
+    simStage.addEventListener('contextmenu', e => e.preventDefault());
+
+    // Leaving in the middle of a round: the round starts again from the card when you come back
+    function simPause() {
+      simTimers.clear();
+      simHeld.clear();
+      simAllOff();
+      if (['watch', 'turn', 'good', 'oops'].includes(simon.state)) {
+        simon.state = 'ready';
+        simon.pos = 0;
+        simSay.textContent = '';
+        simCard(`Level ${simon.level + 1}`, 'Ready? Watch the buttons again, then tap them in the same order.', 'Start');
+      }
+      if (simon.state === 'won' && !simStage.classList.contains('won')) {
+        // the level was finished just before leaving: show its card straight away
+        const last = simon.level === SIM_LEVELS.length - 1;
+        simCard(last ? 'You did it!' : 'Great job!', last ? 'You finished all 3 levels.' : `Level ${simon.level + 1} is done.`, last ? 'Play again' : 'Next level');
+      }
+    }
+
+    simLoad(0);
+    simCard('Level 1', 'Watch the buttons light up. Then tap them in the same order.', 'Start');
+
+    // ---------- Battleship Ducks ----------
+    // Look first, then find: the ducks show for a few seconds, then hide under the water.
+    // Tap a square to aim, press FIRE! A hit brings that duck back up; a miss leaves a little ring.
+    // Set look to 0 for classic Battleship (no peeking at the start).
+    const BS_LEVELS = [
+      { ships: [0, 4],          look: 5 },   // 2 ships, 6 ducks
+      { ships: [1, 2, 3],       look: 5 },   // 3 ships, 7 ducks
+      { ships: [0, 1, 2, 3, 4], look: 7 },   // all 5 ships, 13 ducks
+    ];
+    const BS_PEEK_AFTER = 3;   // misses in a row before the ducks peek out for a moment
+    // Your board's grid in picture pixels: the y of each row line, and each column line as x = a + b * y
+    const BS_ROWS = [411, 469, 524, 581, 640, 700, 761, 823, 886, 950, 1022];
+    const BS_COLS = [[238.03, -0.06075], [292.3, -0.04341], [352.52, -0.0308], [409.86, -0.02023], [466.15, -0.00702],
+                     [524.36, 0.00332], [583.11, 0.01332], [640.92, 0.02351], [699.74, 0.03583], [755.76, 0.05239], [815.4, 0.06609]];
+    // Your ducks: which ship, where its water cover goes, and which squares count as that duck (row, column)
+    const BS_DUCKS = [
+      { ship: 0, box: [565, 441, 87, 123],  cells: [[1, 6]] },
+      { ship: 0, box: [650, 441, 62, 123],  cells: [[1, 7]] },
+      { ship: 0, box: [710, 441, 62, 123],  cells: [[1, 8]] },
+      { ship: 0, box: [770, 441, 83, 123],  cells: [[1, 9]] },
+      { ship: 1, box: [242, 545, 115, 86],  cells: [[3, 1]] },
+      { ship: 1, box: [242, 629, 115, 54],  cells: [[4, 1]] },
+      { ship: 1, box: [242, 681, 115, 84],  cells: [[5, 1]] },
+      { ship: 2, box: [711, 802, 116, 88],  cells: [[7, 8]] },
+      { ship: 2, box: [711, 888, 116, 87],  cells: [[8, 8]] },
+      { ship: 3, box: [565, 623, 88, 124],  cells: [[4, 6], [5, 6]] },
+      { ship: 3, box: [651, 623, 89, 124],  cells: [[4, 7], [5, 7]] },
+      { ship: 4, box: [230, 878, 88, 126],  cells: [[8, 1], [9, 1]] },
+      { ship: 4, box: [316, 878, 89, 126],  cells: [[8, 2], [9, 2]] },
+    ];
+    const BS_FILES = ['1-1', '1-2', '1-3', '1-4', '2-1', '2-2', '2-3', '3-1', '3-2', '4-1', '4-2', '5-1', '5-2'];
+
+    const bsStage = document.getElementById('bs');
+    const bsSay = document.getElementById('bsSay');
+    const bsPill = document.getElementById('bsPill');
+    const bsAim = document.getElementById('bsAim');
+    const bsMarks = document.getElementById('bsMarks');
+    const bsDots = [...document.getElementById('bsDots').children];
+    const bsTimers = timerBox();
+    const bsCovers = BS_DUCKS.map((d, i) => {
+      const img = document.createElement('img');
+      img.className = 'part bs-cover';
+      img.src = `duck-cover-${BS_FILES[i]}.png`;
+      img.alt = '';
+      const [x, y, w, h] = d.box;
+      img.setAttribute('style', `--x:${x}; --y:${y}; --w:${w}; --h:${h}; --r:0`);
+      document.getElementById('bsCovers').appendChild(img);
+      return img;
+    });
+    const bsKey = (r, c) => r * 10 + c;
+    const bsOwner = new Map();   // square -> duck
+    BS_DUCKS.forEach((d, i) => d.cells.forEach(([r, c]) => bsOwner.set(bsKey(r, c), i)));
+    const bs = { level: 0, state: 'ready', ducks: [], found: new Set(), shots: new Map(), aim: null, misses: 0 };
+
+    // The four corners of a square, its middle, and how big the crosshair should be there
+    function bsCorner(c, r) { return [BS_COLS[c][0] + BS_COLS[c][1] * BS_ROWS[r], BS_ROWS[r]]; }
+    function bsSquare(r, c) {
+      const p = [bsCorner(c, r), bsCorner(c + 1, r), bsCorner(c + 1, r + 1), bsCorner(c, r + 1)];
+      const cx = (p[0][0] + p[1][0] + p[2][0] + p[3][0]) / 4, cy = (p[0][1] + p[2][1]) / 2;
+      const w = ((p[1][0] - p[0][0]) + (p[2][0] - p[3][0])) / 2, h = p[3][1] - p[0][1];
+      return { cx, cy, s: 82 * Math.sqrt(w * h / (64.5 * 59)) };   // your crosshair is 82 px on square E4
+    }
+    function bsSquareAt(x, y) {
+      let r = -1;
+      for (let i = 0; i < 10; i++) if (y >= BS_ROWS[i] && y < BS_ROWS[i + 1]) r = i;
+      if (r < 0) return null;
+      for (let c = 0; c < 10; c++) {
+        const x0 = BS_COLS[c][0] + BS_COLS[c][1] * y, x1 = BS_COLS[c + 1][0] + BS_COLS[c + 1][1] * y;
+        if (x >= x0 && x < x1) return [r, c];
+      }
+      return null;
+    }
+    function bsCount() { return `${bs.found.size} of ${bs.ducks.length} ducks`; }
+    function bsCard(title, text, button) {
+      document.getElementById('bsCardTitle').textContent = title;
+      document.getElementById('bsCardText').textContent = text;
+      document.getElementById('bsCardButtonText').textContent = button;
+      bsStage.classList.add('won');
+    }
+    function bsSetAim(sq) {
+      bs.aim = sq;
+      bsStage.classList.toggle('aimed', !!sq);
+      if (!sq) { bsAim.classList.remove('on', 'glide'); return; }
+      const { cx, cy, s } = bsSquare(...sq);
+      const wasOn = bsAim.classList.contains('on');
+      bsAim.classList.remove('fire', 'nope');
+      bsAim.classList.toggle('glide', wasOn);
+      bsAim.style.setProperty('--cx', cx);
+      bsAim.style.setProperty('--cy', cy);
+      bsAim.style.setProperty('--s', s);
+      bsAim.classList.add('on');
+    }
+
+    function bsLoad(n) {
+      bsTimers.clear();
+      const lv = BS_LEVELS[n];
+      Object.assign(bs, { level: n, state: 'ready', misses: 0 });
+      bs.ducks = BS_DUCKS.map((d, i) => i).filter(i => lv.ships.includes(BS_DUCKS[i].ship));
+      bs.found.clear();
+      bs.shots.clear();
+      bsSetAim(null);
+      bsMarks.textContent = '';
+      bsCovers.forEach(c => c.classList.remove('off', 'fast'));
+      document.getElementById('bsLevelNo').textContent = n + 1;
+      setDots(bsDots, n);
+      bsSay.textContent = '';
+    }
+    function bsStart() {
+      bsStage.classList.remove('won');
+      const lv = BS_LEVELS[bs.level];
+      if (!lv.look) { bsHide(); return; }
+      bs.state = 'look';
+      bs.ducks.forEach(i => bsCovers[i].classList.add('off'));
+      for (let k = lv.look; k > 0; k--) bsTimers.later(() => say(bsSay, `Remember the ducks! ${k}`), (lv.look - k) * 1000);
+      bsTimers.later(bsHide, lv.look * 1000);
+    }
+    function bsHide() {
+      bs.ducks.forEach(i => { if (!bs.found.has(i)) bsCovers[i].classList.remove('off'); });
+      bs.state = 'play';
+      say(bsSay, 'Find the ducks!');
+    }
+
+    function bsTap(clientX, clientY) {
+      if (bs.state !== 'play') return;
+      const r = bsStage.getBoundingClientRect();
+      const sq = bsSquareAt((clientX - r.left) / r.width * 1024, (clientY - r.top) / r.width * 1024);
+      if (!sq) return;
+      const key = bsKey(...sq);
+      if (bs.shots.has(key)) {
+        say(bsSay, 'You tried there already');
+        const mark = bsMarks.querySelector(`[data-key="${key}"]`);
+        if (mark) { mark.classList.remove('nope'); void mark.offsetWidth; mark.classList.add('nope'); }
+        return;
+      }
+      bsSetAim(sq);
+      say(bsSay, 'Now press FIRE!');
+    }
+    function bsFire() {
+      if (bs.state !== 'play') return;
+      if (!bs.aim) { say(bsSay, 'Tap a square first'); shake(bsPill); return; }
+      const [r, c] = bs.aim, key = bsKey(r, c), sq = bsSquare(r, c);
+      bsSetAim(null);
+      bsAim.classList.add('on', 'fire');
+      bs.state = 'shot';
+      bsTimers.later(() => {
+        bsAim.classList.remove('on', 'fire');
+        bs.state = 'play';
+        const duck = bsOwner.get(key);
+        const ripple = document.createElement('div');
+        ripple.className = 'bs-ripple';
+        ripple.style.cssText = `--cx:${sq.cx}; --cy:${sq.cy}; --s:${sq.s}`;
+        ripple.addEventListener('animationend', () => ripple.remove());
+        if (duck !== undefined && bs.ducks.includes(duck) && !bs.found.has(duck)) {
+          // hit: the duck comes back up, and every square of that duck counts as found
+          bs.found.add(duck);
+          BS_DUCKS[duck].cells.forEach(([rr, cc]) => bs.shots.set(bsKey(rr, cc), 'hit'));
+          bsCovers[duck].classList.add('off');
+          ripple.classList.add('hit');
+          bsMarks.appendChild(ripple);
+          bs.misses = 0;
+          const ship = BS_DUCKS[duck].ship;
+          const shipDone = bs.ducks.filter(i => BS_DUCKS[i].ship === ship).every(i => bs.found.has(i));
+          if (bs.found.size === bs.ducks.length) { bsWin(); return; }
+          say(bsSay, shipDone ? `A whole ship! ${bsCount()}` : `Hit! ${bsCount()}`);
+        } else {
+          // miss: a ring on the water
+          bs.shots.set(key, 'miss');
+          bsMarks.appendChild(ripple);
+          const mark = document.createElement('div');
+          mark.className = 'bs-mark';
+          mark.dataset.key = key;
+          mark.style.cssText = `--cx:${sq.cx}; --cy:${sq.cy}; --s:${sq.s}`;
+          bsMarks.appendChild(mark);
+          bs.misses++;
+          if (bs.misses >= BS_PEEK_AFTER) { bs.misses = 0; bsPeek(); }
+          else say(bsSay, `Splash! ${bsCount()}`);
+        }
+      }, 280);
+    }
+    // After a few misses in a row, the ducks that are still hiding peek out for a moment
+    function bsPeek() {
+      say(bsSay, 'Splash! Peek at the ducks!');
+      bs.state = 'peek';
+      const hiding = bs.ducks.filter(i => !bs.found.has(i));
+      bsTimers.later(() => hiding.forEach(i => bsCovers[i].classList.add('off', 'fast')), 500);
+      bsTimers.later(() => {
+        hiding.forEach(i => { if (!bs.found.has(i)) bsCovers[i].classList.remove('off'); });
+        bs.state = 'play';
+        say(bsSay, 'Find the ducks!');
+      }, 1900);
+      bsTimers.later(() => hiding.forEach(i => bsCovers[i].classList.remove('fast')), 2400);
+    }
+    function bsWin() {
+      bs.state = 'won';
+      say(bsSay, 'You found them all!');
+      bsDots[bs.level].className = 'done';
+      const last = bs.level === BS_LEVELS.length - 1;
+      bsTimers.later(() => bsCard(
+        last ? 'You did it!' : 'Great job!',
+        last ? 'You found every duck in all 3 levels.' : `You found all ${bs.ducks.length} ducks.`,
+        last ? 'Play again' : 'Next level'), 1200);
+    }
+    document.getElementById('bsCardButton').addEventListener('click', () => {
+      if (bs.state === 'won') bsLoad(bs.level === BS_LEVELS.length - 1 ? 0 : bs.level + 1);
+      if (bs.state === 'ready') bsStart();
+    });
+    document.getElementById('bsBoard').addEventListener('pointerdown', e => { e.preventDefault(); bsTap(e.clientX, e.clientY); });
+    document.getElementById('bsFire').addEventListener('click', bsFire);
+    bsStage.addEventListener('contextmenu', e => e.preventDefault());
+
+    // Leaving while the ducks are showing: they hide again, and the level starts from its card
+    function bsPause() {
+      if (bs.state === 'look') {
+        bsTimers.clear();
+        bsCovers.forEach(c => c.classList.remove('off'));
+        bs.state = 'ready';
+        bsSay.textContent = '';
+        bsCard(`Level ${bs.level + 1}`, 'Look where the ducks are. Then find them all!', 'Start');
+      } else if (bs.state === 'peek' || bs.state === 'shot') {
+        bsTimers.clear();
+        bs.ducks.forEach(i => bsCovers[i].classList.toggle('off', bs.found.has(i)));
+        bsAim.classList.remove('on', 'fire');
+        bs.state = 'play';
+        bsSay.textContent = '';
+      } else if (bs.state === 'won' && !bsStage.classList.contains('won')) {
+        bsTimers.clear();
+        const last = bs.level === BS_LEVELS.length - 1;
+        bsCard(last ? 'You did it!' : 'Great job!', last ? 'You found every duck in all 3 levels.' : `You found all ${bs.ducks.length} ducks.`, last ? 'Play again' : 'Next level');
+      }
+    }
+
+    bsLoad(0);
+    bsCard('Level 1', 'Look where the ducks are. Then find them all!', 'Start');
+
+    // Games pause when you leave their screen or the app goes to the background
+    const onLeave = { simon: simPause, battle: bsPause, map: lifeStop };
+    const onEnter = { map: lifeStart };
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden && onLeave[current]) onLeave[current]();
+    });
 
     // Stop a pinch from zooming the whole app
     for (const type of ['gesturestart', 'gesturechange']) {
