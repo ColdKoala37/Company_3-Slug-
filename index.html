@@ -330,6 +330,171 @@
       96%, 100% { opacity: 0; transform: scale(2.1); }
     }
 
+    /* Farmer: the watering can tips forward, water sprinkles onto the plant, and it tips back */
+    .can { transform-origin: 3px 45px; animation: can-tip 7s ease-in-out infinite; }   /* turns where the farmer holds it */
+    @keyframes can-tip {
+      0%, 66%, 100% { transform: rotate(0); }
+      10%, 54% { transform: rotate(14deg); }
+      32% { transform: rotate(16deg); }
+    }
+    .cfill { opacity: 0; animation: can-fill 7s linear infinite; }   /* your map behind the can, only needed while it is tipped */
+    @keyframes can-fill { 0%, 66%, 100% { opacity: 0; } 1%, 64% { opacity: 1; } }
+    .water { position: absolute; left: 723px; top: 1463px; opacity: 0; animation: can-water 7s linear infinite; }
+    @keyframes can-water { 0%, 11%, 56%, 100% { opacity: 0; } 13%, 53% { opacity: 1; } }
+    .water b { position: absolute; left: 0; top: 0; animation: drop-x .62s linear infinite; animation-delay: var(--d); }
+    .water b i {
+      position: absolute;
+      left: -2.5px;
+      top: -2.5px;
+      width: 5px;
+      height: 6px;
+      border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+      background: radial-gradient(circle at 35% 35%, #fff 0 22%, #8fd6ff 45%, #3aa6ec 100%);
+      animation: drop-y .62s cubic-bezier(.5, 0, 1, 1) infinite;
+      animation-delay: var(--d);
+    }
+    @keyframes drop-x { from { transform: translateX(0); } to { transform: translateX(calc(var(--dx) * 1px)); } }
+    @keyframes drop-y {
+      0% { transform: translateY(0) scale(.7); opacity: 0; }
+      12% { opacity: 1; }
+      85% { opacity: 1; }
+      100% { transform: translateY(30px) scale(1); opacity: 0; }
+    }
+
+    /* Campfire: the flame and its yellow middle flicker on their own beats; sparks fly up */
+    .flame { transform-origin: 24px 69px; animation: flicker 1.15s ease-in-out infinite; }
+    .flame-core { transform-origin: 15px 35px; animation: flicker-core .8s ease-in-out infinite; }
+    @keyframes flicker {
+      0%, 100% { transform: scale(1, 1) skewX(0); }
+      22% { transform: scale(1.03, .95) skewX(2.5deg); }
+      48% { transform: scale(.98, 1.06) skewX(-2.5deg); }
+      74% { transform: scale(1.02, .97) skewX(1.5deg); }
+    }
+    @keyframes flicker-core {
+      0%, 100% { transform: scale(1, 1); }
+      30% { transform: scale(.93, 1.09) skewX(-3deg); }
+      62% { transform: scale(1.05, .92) skewX(3deg); }
+    }
+    .ember { animation: ember 2.6s ease-out infinite; }
+    @keyframes ember {
+      0% { transform: translate(9px, 22px) scale(.6); opacity: 0; }
+      25% { opacity: 1; }
+      50% { transform: translate(0, 0) scale(1); opacity: 1; }
+      100% { transform: translate(-7px, -24px) scale(.7); opacity: 0; }
+    }
+    .spark {
+      position: absolute;
+      left: calc(var(--x) * 1px);
+      top: calc(var(--y) * 1px);
+      width: calc(var(--s) * 1px);
+      height: calc(var(--s) * 1px);
+      border-radius: 50%;
+      background: var(--c);
+      opacity: 0;
+      animation: spark var(--t) ease-out infinite;
+      animation-delay: var(--d);
+    }
+    @keyframes spark {
+      0% { transform: translate(0, 0); opacity: 0; }
+      15% { opacity: 1; }
+      100% { transform: translate(calc(var(--dx) * 1px), -48px); opacity: 0; }
+    }
+
+    /* Dragonfly: darts from spot to spot over the lake with buzzing wings */
+    .dfly { animation: dart 13s ease-in-out infinite; }
+    .dfly > .hover { position: absolute; inset: 0; animation: dfly-hover 1.6s ease-in-out infinite; }
+    .dfly img { position: absolute; display: block; }
+    .dfly .wings { left: 0; top: 0; width: 66px; height: 49px; transform-origin: 32px 22px; animation: buzz .09s linear infinite; }
+    .dfly .body { left: 12px; top: 5px; width: 49px; height: 46px; }
+    @keyframes buzz { 50% { transform: scale(.84, .9); } }
+    @keyframes dfly-hover { 50% { transform: translateY(-2.5px); } }
+    @keyframes dart {
+      0%, 16% { transform: translate(0, 0) rotate(0); }
+      22%, 38% { transform: translate(-46px, -16px) rotate(-10deg); }
+      45%, 62% { transform: translate(30px, 22px) rotate(8deg); }
+      69%, 84% { transform: translate(-20px, 34px) rotate(-4deg); }
+      91%, 100% { transform: translate(0, 0) rotate(0); }
+    }
+
+    /* Ducks: paddle about the pond, turn round, and bob on the water */
+    .duck img { display: block; width: 100%; height: 100%; animation: duck-bob 2.3s ease-in-out infinite; }
+    .duck.d1 { animation: swim1 34s ease-in-out infinite; }
+    .duck.d2 { animation: swim2 27s ease-in-out infinite; }
+    .duck.d3 { animation: swim3 23s ease-in-out infinite; }
+    .duck.d2 img { animation-delay: -.8s; }
+    .duck.d3 img { animation-delay: -1.5s; }
+    @keyframes duck-bob { 50% { transform: translateY(1.6px) rotate(-1.5deg); } }
+    @keyframes swim1 {
+      0% { transform: translate(0, 0) scaleX(1); }
+      30% { transform: translate(-108px, 6px) scaleX(1); }
+      34% { transform: translate(-112px, 6px) scaleX(-1); }
+      70% { transform: translate(116px, -3px) scaleX(-1); }
+      74% { transform: translate(120px, -3px) scaleX(1); }
+      100% { transform: translate(0, 0) scaleX(1); }
+    }
+    @keyframes swim2 {
+      0% { transform: translate(0, 0) scaleX(1); }
+      40% { transform: translate(-136px, -4px) scaleX(1); }
+      45% { transform: translate(-140px, -4px) scaleX(-1); }
+      82% { transform: translate(6px, 2px) scaleX(-1); }
+      87% { transform: translate(8px, 2px) scaleX(1); }
+      100% { transform: translate(0, 0) scaleX(1); }
+    }
+    @keyframes swim3 {
+      0% { transform: translate(0, 0) scaleX(1); }
+      12% { transform: translate(-20px, 3px) scaleX(1); }
+      17% { transform: translate(-22px, 3px) scaleX(-1); }
+      55% { transform: translate(86px, -5px) scaleX(-1); }
+      60% { transform: translate(88px, -5px) scaleX(1); }
+      100% { transform: translate(0, 0) scaleX(1); }
+    }
+
+    /* Frog: bobs in the pond, blinks, and now and then ducks under and pops back up */
+    .frogpond { overflow: hidden; }                       /* its bottom edge is the waterline */
+    .frog { position: absolute; left: 12px; top: 50px; width: 64px; height: 50px; animation: frog-dip 13s linear infinite; }
+    .frog > img { display: block; width: 100%; height: 100%; animation: frog-bob 2.4s ease-in-out infinite; }
+    @keyframes frog-bob { 50% { transform: translateY(1.5px); } }
+    @keyframes frog-dip {
+      0%, 60% { transform: translateY(0); animation-timing-function: cubic-bezier(.5, 0, .9, .6); }
+      64% { transform: translateY(56px); }
+      78% { transform: translateY(56px); animation-timing-function: cubic-bezier(.2, .8, .4, 1); }
+      82% { transform: translateY(-6px); animation-timing-function: ease-in-out; }
+      85%, 100% { transform: translateY(0); }
+    }
+    .lid {
+      position: absolute;
+      left: calc(var(--x) * 1px);
+      top: calc(var(--y) * 1px);
+      width: 18px;
+      height: 17px;
+      box-sizing: border-box;
+      border-radius: 50%;
+      background: #4cc177;
+      border-bottom: 2px solid #0e4a1c;
+      transform-origin: 50% 0;
+      transform: scaleY(0);
+      animation: blink 5.2s linear infinite;
+    }
+    @keyframes blink {
+      0%, 30%, 33.4%, 36.6%, 100% { transform: scaleY(0); }
+      31.7%, 35% { transform: scaleY(1); }
+    }
+    .fring {
+      position: absolute;
+      left: 374px;
+      top: 1635px;
+      width: 74px;
+      height: 16px;
+      margin: -8px 0 0 -37px;
+      border-radius: 50%;
+      box-shadow: inset 0 0 0 2.5px rgb(255 255 255 / .9);
+      opacity: 0;
+    }
+    .fring.a { animation: fring-a 13s ease-out infinite; }
+    .fring.b { animation: fring-b 13s ease-out infinite; }
+    @keyframes fring-a { 0%, 61% { opacity: 0; transform: scale(.5); } 63% { opacity: 1; } 72%, 100% { opacity: 0; transform: scale(1.6); } }
+    @keyframes fring-b { 0%, 80% { opacity: 0; transform: scale(.5); } 82% { opacity: 1; } 92%, 100% { opacity: 0; transform: scale(1.7); } }
+
     /* ---------- Shared by the three games ---------- */
     @font-face {
       font-family: 'Nunito';
@@ -685,6 +850,13 @@
           <img class="bit ifill" src="map-fill-flag.png" alt="" style="--x:1668; --y:201; --w:67; --h:50">
           <img class="bit ifill" src="map-fill-splash.png" alt="" style="--x:358; --y:508; --w:119; --h:71">
           <img class="bit ifill" src="map-fill-rod.png" alt="" style="--x:3099; --y:1396; --w:104; --h:166">
+          <img class="bit cfill" src="map-fill-can.png" alt="" style="--x:646; --y:1411; --w:93; --h:95">
+          <img class="bit ifill" src="map-fill-flame.png" alt="" style="--x:3099; --y:385; --w:81; --h:97">
+          <img class="bit ifill" src="map-fill-dfly.png" alt="" style="--x:3433; --y:1354; --w:90; --h:75">
+          <img class="bit ifill" src="map-fill-duck-1.png" alt="" style="--x:2367; --y:301; --w:81; --h:68">
+          <img class="bit ifill" src="map-fill-duck-2.png" alt="" style="--x:2287; --y:354; --w:85; --h:69">
+          <img class="bit ifill" src="map-fill-duck-3.png" alt="" style="--x:2434; --y:341; --w:85; --h:70">
+          <img class="bit ifill" src="map-fill-frog.png" alt="" style="--x:331; --y:1579; --w:86; --h:72">
 
           <!-- waterfall -->
           <div class="bit falls" style="--x:312; --y:356; --w:150; --h:166"><i style="--l:45; --d:0s"></i><i style="--l:72; --d:-0.45s"></i><i style="--l:98; --d:-0.9s"></i><i style="--l:120; --d:-0.25s"></i><i style="--l:58; --d:-0.7s"></i></div>
@@ -708,6 +880,37 @@
               <img src="map-rod.png" alt="">
               <div class="hang"><i class="line"></i><img class="fish" src="fish.png" alt=""></div>
             </div>
+          </div>
+
+          <!-- farmer: the watering can tips and sprinkles; the drops are drawn (your picture has no water) -->
+          <div class="box can" style="--x:654; --y:1421; --w:75; --h:75"><img src="map-can.png" alt=""></div>
+          <div class="water"><b style="--d:0s; --dx:16"><i style="--d:0s"></i></b><b style="--d:-0.21s; --dx:20"><i style="--d:-0.21s"></i></b><b style="--d:-0.41s; --dx:13"><i style="--d:-0.41s"></i></b><b style="--d:-0.1s; --dx:18"><i style="--d:-0.1s"></i></b><b style="--d:-0.31s; --dx:15"><i style="--d:-0.31s"></i></b><b style="--d:-0.52s; --dx:21"><i style="--d:-0.52s"></i></b></div>
+
+          <!-- campfire: your flame and its yellow middle flicker, your ember flies up; the three small sparks are drawn -->
+          <img class="bit flame" src="map-flame.png" alt="" style="--x:3111; --y:401; --w:57; --h:73">
+          <img class="bit flame-core" src="map-flame-core.png" alt="" style="--x:3123; --y:435; --w:33; --h:40">
+          <img class="bit ember" src="map-ember.png" alt="" style="--x:3125; --y:396; --w:14; --h:9">
+          <i class="spark" style="--x:3128; --y:426; --s:3.5; --c:#ffd25e; --t:1.9s; --d:0s; --dx:-10"></i><i class="spark" style="--x:3143; --y:420; --s:3; --c:#ff9a3c; --t:2.3s; --d:-0.8s; --dx:8"></i><i class="spark" style="--x:3136; --y:430; --s:2.5; --c:#ffe48a; --t:1.7s; --d:-1.4s; --dx:-3"></i>
+
+          <!-- ducks on the pond (the one furthest back first) -->
+          <div class="box duck d1" style="--x:2378; --y:312; --w:59; --h:46"><img src="map-duck-1.png" alt=""></div>
+          <div class="box duck d2" style="--x:2298; --y:365; --w:63; --h:48"><img src="map-duck-2.png" alt=""></div>
+          <div class="box duck d3" style="--x:2445; --y:352; --w:63; --h:48"><img src="map-duck-3.png" alt=""></div>
+
+          <!-- frog: the eyelids and the rings on the water are drawn -->
+          <span class="fring a"></span>
+          <span class="fring b"></span>
+          <div class="bit frogpond" style="--x:330; --y:1540; --w:90; --h:98">
+            <div class="frog">
+              <img src="map-frog.png" alt="">
+              <i class="lid" style="--x:10.5; --y:6.5"></i>
+              <i class="lid" style="--x:37; --y:6.5"></i>
+            </div>
+          </div>
+
+          <!-- dragonfly over the lake -->
+          <div class="box dfly" style="--x:3445; --y:1366; --w:66; --h:51">
+            <div class="hover"><img class="wings" src="map-dfly-wings.png" alt=""><img class="body" src="map-dfly-body.png" alt=""></div>
           </div>
 
           <!-- vehicles: the script below drives them along the roads -->

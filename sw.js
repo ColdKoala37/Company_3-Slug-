@@ -2,16 +2,19 @@
 // When there is internet it asks GitHub for the newest files first,
 // so an update you upload shows up the next time you open the app.
 
-const CACHE = 'slug-v9';
+const CACHE = 'slug-v10';
 const FILES = [
   './', 'index.html', 'manifest.json', 'slug-icon.png', 'nunito.woff2', 'splash.png', 'age.png', 'map.png',
   'loading.png', 'ring.webp',
   // map
   'fish.png', 'map-amb.png', 'map-bike.png', 'map-boat.png', 'map-bus.png', 'map-butterfly.png',
-  'map-car.png', 'map-fill-amb.png', 'map-fill-bike.png', 'map-fill-boat.png', 'map-fill-bus.png',
-  'map-fill-butterfly.png', 'map-fill-flag.png', 'map-fill-rod.png', 'map-fill-splash.png', 'map-flag.png',
-  'map-label-battle.png', 'map-label-profile.png', 'map-label-simon.png', 'map-label-sudoku.png',
-  'map-rod.png', 'map-splash.png',
+  'map-can.png', 'map-car.png', 'map-dfly-body.png', 'map-dfly-wings.png', 'map-duck-1.png',
+  'map-duck-2.png', 'map-duck-3.png', 'map-ember.png', 'map-fill-amb.png', 'map-fill-bike.png',
+  'map-fill-boat.png', 'map-fill-bus.png', 'map-fill-butterfly.png', 'map-fill-can.png', 'map-fill-dfly.png',
+  'map-fill-duck-1.png', 'map-fill-duck-2.png', 'map-fill-duck-3.png', 'map-fill-flag.png',
+  'map-fill-flame.png', 'map-fill-frog.png', 'map-fill-rod.png', 'map-fill-splash.png', 'map-flag.png',
+  'map-flame-core.png', 'map-flame.png', 'map-frog.png', 'map-label-battle.png', 'map-label-profile.png',
+  'map-label-simon.png', 'map-label-sudoku.png', 'map-rod.png', 'map-splash.png',
   // simon
   'simon-all.png', 'simon-blue.png', 'simon-board.png', 'simon-green.png', 'simon-map-button.png',
   'simon-red.png', 'simon-yellow.png',
