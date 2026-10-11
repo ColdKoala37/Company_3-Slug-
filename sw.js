@@ -2,7 +2,7 @@
 // When there is internet it asks GitHub for the newest files first,
 // so an update you upload shows up the next time you open the app.
 
-const CACHE = 'slug-v15';
+const CACHE = 'slug-v16';
 const FILES = [
   './', 'index.html', 'manifest.json', 'app-icon-180.png', 'app-icon-192.png', 'app-icon-512.png', 'apple-touch-icon.png', 'slug-icon.png', 'icon.png', 'nunito.woff2', 'splash.png', 'age.png', 'map.png',
   'loading.png', 'ring.webp',
@@ -23,10 +23,10 @@ const FILES = [
   // sudoku
   'bin-blue.png', 'bin-green.png', 'bin-red.png', 'bin-yellow.png', 'sudoku-board.png',
   // my profile
-  'profile.png', 'wear-antenna-1.png', 'wear-antenna-2.png', 'wear-backpack.png', 'wear-doctor.png',
-  'wear-explorer-hat.png', 'wear-fill-antennae.png', 'wear-head.png', 'wear-overalls.png',
-  'wear-raincoat.png', 'wear-shade-doctor.png', 'wear-shade-overalls.png', 'wear-shade-raincoat.png',
-  'wear-shade-sporty.png', 'wear-slug.png', 'wear-sporty.png', 'wear-straw-hat.png',
+  'profile.png', 'wear-cards.png', 'wear-antenna-1.png', 'wear-antenna-2.png', 'wear-fill-antennae.png',
+  'wear-head.png', 'wear-slug.png', 'wear-explorer-hat.png', 'wear-cap.png', 'wear-top-hat.png',
+  'wear-straw-hat.png', 'wear-tie.png', 'wear-shade-tie.png', 'wear-propeller-cap.png', 'wear-propeller.png',
+  'wear-propeller-hub.png',
   // parental controls
   'settings.png'
 ];

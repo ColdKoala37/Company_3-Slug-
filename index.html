@@ -722,8 +722,29 @@
     }
     .wear { visibility: hidden; transform-origin: 0 0; }
     .wear.on { visibility: visible; }
+    .wear > img { position: absolute; inset: 0; width: 100%; height: 100%; }
     .shade { opacity: 0; transition: opacity .25s; }
     .shade.on { opacity: 1; }
+
+    /* the propeller turns in the breeze, and fast for a moment when the cap goes on */
+    .spin {
+      transform-origin: calc(var(--ax) * var(--px)) 50%;
+      animation: spin 1.2s linear infinite;
+    }
+    .dress.happy .spin { animation-duration: .35s; }
+    @keyframes spin {
+      0%    { transform: scaleX(1); }
+      12.5% { transform: scaleX(.71); }
+      25%   { transform: scaleX(0); }
+      37.5% { transform: scaleX(-.71); }
+      50%   { transform: scaleX(-1); }
+      62.5% { transform: scaleX(-.71); }
+      75%   { transform: scaleX(0); }
+      87.5% { transform: scaleX(.71); }
+      100%  { transform: scaleX(1); }
+    }
+    /* nothing moves while you're on another screen */
+    #profile:not(.active) .antenna, #profile:not(.active) .spin { animation-play-state: paused; }
 
     /* the antennae sway a little, and wiggle happily when something new goes on */
     .antenna {
@@ -812,7 +833,7 @@
       100% { opacity: 0; transform: rotate(var(--a)) translateX(calc(var(--r) * 1.3 * var(--px))) scaleX(1); }
     }
     @media (prefers-reduced-motion: reduce) {
-      .antenna, .dress.happy .antenna { animation: none !important; }
+      .antenna, .dress.happy .antenna, .spin { animation: none !important; }
       .burst { display: none; }
     }
 
@@ -1050,37 +1071,41 @@
   </section>
 
   <!-- My Profile -->
-  <!-- My Profile: tap a piece of clothing in the wardrobe to put it on your slug, tap it again to take it off.
-       The slug and every piece of clothing are cut from your My Profile picture. -->
+  <!-- My Profile: tap a hat (or the tie) in the wardrobe to put it on your slug, tap it again to take it off.
+       The slug, the explorer hat and the farmer's straw hat are cut from your My Profile picture;
+       the cap, top hat, tie and propeller cap are drawn to match it. -->
   <section class="screen picture" id="profile" data-theme="#caf8da" style="--top:#caf8da; --bottom:#9ae4be">
     <div class="stage dress" id="dress" style="--iw:1024; --ih:1366">
       <img class="pic" src="profile.png" width="1024" height="1366" alt="My Profile">
+      <!-- the new wardrobe cards: cap, top hat, farmer hat, tie and propeller cap (the explorer hat card is yours as it was) -->
+      <img class="layer" src="wear-cards.png" alt="" style="--x:271; --y:886; --w:671; --h:219">
 
       <!-- the slug, from the back to the front -->
       <img class="layer" src="wear-fill-antennae.png" alt="" style="--x:386; --y:347; --w:248; --h:126">
-      <img class="layer wear" data-piece="backpack" src="wear-backpack.png" alt="" style="--x:353; --y:485.9; --w:110; --h:124.3">
       <img class="layer" src="wear-slug.png" alt="" style="--x:350; --y:421; --w:320; --h:307">
-      <img class="layer wear" data-piece="raincoat" src="wear-raincoat.png" alt="" style="--x:484.4; --y:546; --w:155.2; --h:168.2">
-      <img class="layer wear" data-piece="doctor" src="wear-doctor.png" alt="" style="--x:483.1; --y:552; --w:157.8; --h:164.6">
-      <img class="layer wear" data-piece="overalls" src="wear-overalls.png" alt="" style="--x:501.6; --y:582; --w:124.7; --h:120.3">
-      <img class="layer wear" data-piece="sporty" src="wear-sporty.png" alt="" style="--x:484.6; --y:547; --w:154.8; --h:166.1">
-      <img class="layer shade" data-piece="raincoat" src="wear-shade-raincoat.png" alt="" style="--x:507; --y:584; --w:105; --h:25">
-      <img class="layer shade" data-piece="doctor" src="wear-shade-doctor.png" alt="" style="--x:502; --y:582; --w:117; --h:27">
-      <img class="layer shade" data-piece="overalls" src="wear-shade-overalls.png" alt="" style="--x:518; --y:588; --w:88; --h:21">
-      <img class="layer shade" data-piece="sporty" src="wear-shade-sporty.png" alt="" style="--x:505; --y:585; --w:110; --h:24">
+      <img class="layer wear" data-piece="tie" src="wear-tie.png" alt="" style="--x:523; --y:592; --w:50; --h:106">
+      <img class="layer shade" data-piece="tie" src="wear-shade-tie.png" alt="" style="--x:529; --y:595; --w:38; --h:15">
       <img class="layer" src="wear-head.png" alt="" style="--x:418; --y:421; --w:234; --h:176">
       <img class="layer antenna a1" src="wear-antenna-1.png" alt="" style="--x:395; --y:391; --w:75; --h:73; --ox:56.6; --oy:55.1">
       <img class="layer antenna a2" src="wear-antenna-2.png" alt="" style="--x:552; --y:356; --w:72; --h:85; --ox:18.6; --oy:71">
+      <!-- the hats (one at a time) -->
       <img class="layer wear" data-piece="explorer-hat" src="wear-explorer-hat.png" alt="" style="--x:443.2; --y:376.3; --w:157.6; --h:93.7">
+      <img class="layer wear" data-piece="cap" src="wear-cap.png" alt="" style="--x:446; --y:378; --w:180; --h:104">
+      <img class="layer wear" data-piece="top-hat" src="wear-top-hat.png" alt="" style="--x:447; --y:352; --w:150; --h:122">
       <img class="layer wear" data-piece="straw-hat" src="wear-straw-hat.png" alt="" style="--x:449.8; --y:388; --w:148.5; --h:78">
+      <div class="layer wear" data-piece="propeller-cap" style="--x:439; --y:368; --w:166; --h:119">
+        <img src="wear-propeller-cap.png" alt="">
+        <img class="spin" src="wear-propeller.png" alt="" style="--ax:82.68">
+        <img src="wear-propeller-hub.png" alt="">
+      </div>
 
       <!-- your six wardrobe cards -->
       <button class="wcard" data-item="explorer" aria-label="Explorer hat" aria-pressed="false" style="--x:121; --y:878; --w:135; --h:234"><span class="tick" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="#fff" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button>
-      <button class="wcard" data-item="raincoat" aria-label="Raincoat" aria-pressed="false" style="--x:263; --y:878; --w:131; --h:234"><span class="tick" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="#fff" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button>
-      <button class="wcard" data-item="backpack" aria-label="Backpack" aria-pressed="false" style="--x:400; --y:878; --w:129; --h:234"><span class="tick" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="#fff" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button>
-      <button class="wcard" data-item="doctor" aria-label="Doctor outfit" aria-pressed="false" style="--x:536; --y:878; --w:134; --h:234"><span class="tick" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="#fff" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button>
-      <button class="wcard" data-item="farmer" aria-label="Farmer outfit" aria-pressed="false" style="--x:677; --y:878; --w:133; --h:234"><span class="tick" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="#fff" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button>
-      <button class="wcard" data-item="sporty" aria-label="Sporty outfit" aria-pressed="false" style="--x:816; --y:878; --w:133; --h:234"><span class="tick" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="#fff" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button>
+      <button class="wcard" data-item="cap" aria-label="Cap" aria-pressed="false" style="--x:263; --y:878; --w:131; --h:234"><span class="tick" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="#fff" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button>
+      <button class="wcard" data-item="tophat" aria-label="Top hat" aria-pressed="false" style="--x:400; --y:878; --w:129; --h:234"><span class="tick" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="#fff" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button>
+      <button class="wcard" data-item="farmer" aria-label="Farmer hat" aria-pressed="false" style="--x:536; --y:878; --w:134; --h:234"><span class="tick" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="#fff" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button>
+      <button class="wcard" data-item="tie" aria-label="Tie" aria-pressed="false" style="--x:677; --y:878; --w:133; --h:234"><span class="tick" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="#fff" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button>
+      <button class="wcard" data-item="propeller" aria-label="Propeller cap" aria-pressed="false" style="--x:816; --y:878; --w:133; --h:234"><span class="tick" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="#fff" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button>
 
       <button class="hot" data-go="settings" aria-label="Parental controls" style="--x:869; --y:19;   --w:145; --h:145; --r:73"></button>
       <button class="hot" data-go="map"      aria-label="Save"              style="--x:344; --y:1175; --w:350; --h:143; --r:72"></button>
@@ -1856,25 +1881,24 @@
     });
 
     // ---------- My Profile: dress your slug ----------
-    // Each wardrobe card puts on one thing. Things that go in the same place swap:
-    // one hat, one coat or outfit, one backpack. The farmer outfit is a hat and overalls together.
+    // Each wardrobe card puts on one thing. The slug wears one hat at a time (a new hat swaps with the old one),
+    // and the tie can go on with any hat.
     const CLOTHES = {
-      explorer: { places: ['head'], pieces: ['explorer-hat'] },
-      raincoat: { places: ['body'], pieces: ['raincoat'] },
-      backpack: { places: ['back'], pieces: ['backpack'] },
-      doctor:   { places: ['body'], pieces: ['doctor'] },
-      farmer:   { places: ['head', 'body'], pieces: ['straw-hat', 'overalls'] },
-      sporty:   { places: ['body'], pieces: ['sporty'] },
+      explorer:  { places: ['head'], pieces: ['explorer-hat'] },
+      cap:       { places: ['head'], pieces: ['cap'] },
+      tophat:    { places: ['head'], pieces: ['top-hat'] },
+      farmer:    { places: ['head'], pieces: ['straw-hat'] },
+      tie:       { places: ['neck'], pieces: ['tie'] },
+      propeller: { places: ['head'], pieces: ['propeller-cap'] },
     };
     // Where each piece sits on its card, and where it goes on the slug (x, y, width, height in picture pixels)
     const PIECES = {
-      'explorer-hat': { card: [133, 919, 111, 66],  slug: [443.2, 376.3, 157.6, 93.7] },
-      'raincoat':     { card: [276, 916, 107, 116], slug: [484.4, 546, 155.2, 168.2] },
-      'backpack':     { card: [415, 913, 100, 113], slug: [353, 485.9, 110, 124.3] },
-      'doctor':       { card: [545, 916, 116, 121], slug: [483.1, 552, 157.8, 164.6] },
-      'straw-hat':    { card: [695, 900, 99, 52],   slug: [449.8, 388, 148.5, 78] },
-      'overalls':     { card: [701, 954, 86, 83],   slug: [501.6, 582, 124.7, 120.3] },
-      'sporty':       { card: [829, 914, 109, 117], slug: [484.6, 547, 154.8, 166.1] },
+      'explorer-hat':  { card: [133, 919, 111, 66],       slug: [443.2, 376.3, 157.6, 93.7] },
+      'cap':           { card: [274, 930, 108, 62.4],     slug: [446, 378, 180, 104] },
+      'top-hat':       { card: [412, 918, 105, 85.4],     slug: [447, 352, 150, 122] },
+      'straw-hat':     { card: [554, 936, 99, 52],        slug: [449.8, 388, 148.5, 78] },
+      'tie':           { card: [716, 902, 56, 118.72],    slug: [523, 592, 50, 106] },
+      'propeller-cap': { card: [825, 916, 115.89, 83.08], slug: [439, 368, 166, 119] },
     };
     const OUTFIT_KEY = 'slug-outfit';
     const dress = document.getElementById('dress');
