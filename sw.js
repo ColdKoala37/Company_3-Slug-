@@ -2,7 +2,7 @@
 // When there is internet it asks GitHub for the newest files first,
 // so an update you upload shows up the next time you open the app.
 
-const CACHE = 'slug-v10';
+const CACHE = 'slug-v11';
 const FILES = [
   './', 'index.html', 'manifest.json', 'slug-icon.png', 'nunito.woff2', 'splash.png', 'age.png', 'map.png',
   'loading.png', 'ring.webp',
@@ -25,8 +25,13 @@ const FILES = [
   'duck-cover-5-1.png', 'duck-cover-5-2.png',
   // sudoku
   'bin-blue.png', 'bin-green.png', 'bin-red.png', 'bin-yellow.png', 'sudoku-board.png',
-  // other
-  'profile.png', 'settings.png'
+  // my profile
+  'profile.png', 'wear-antenna-1.png', 'wear-antenna-2.png', 'wear-backpack.png', 'wear-doctor.png',
+  'wear-explorer-hat.png', 'wear-fill-antennae.png', 'wear-head.png', 'wear-overalls.png',
+  'wear-raincoat.png', 'wear-shade-doctor.png', 'wear-shade-overalls.png', 'wear-shade-raincoat.png',
+  'wear-shade-sporty.png', 'wear-slug.png', 'wear-sporty.png', 'wear-straw-hat.png',
+  // parental controls
+  'settings.png'
 ];
 
 self.addEventListener('install', event => {

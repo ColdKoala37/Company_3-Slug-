@@ -785,6 +785,113 @@
     .bs.aimed .bs-fire::after { opacity: 1; animation: bs-breathe 1.1s ease-in-out infinite; }
     @keyframes bs-breathe { 50% { transform: scale(1.05); } }
 
+    /* ---------- My Profile: dress your slug ---------- */
+    .dress { --px: calc(100cqw / 1024); }
+    /* the slug and its clothes, in layers, placed in pixels of your 1024 x 1366 picture */
+    .layer {
+      position: absolute;
+      left:   calc(var(--x) * var(--px));
+      top:    calc(var(--y) * var(--px));
+      width:  calc(var(--w) * var(--px));
+      height: calc(var(--h) * var(--px));
+      pointer-events: none;
+    }
+    .wear { visibility: hidden; transform-origin: 0 0; }
+    .wear.on { visibility: visible; }
+    .shade { opacity: 0; transition: opacity .25s; }
+    .shade.on { opacity: 1; }
+
+    /* the antennae sway a little, and wiggle happily when something new goes on */
+    .antenna {
+      transform-origin: calc(var(--ox) * var(--px)) calc(var(--oy) * var(--px));
+      animation: sway-a 3.8s ease-in-out infinite;
+    }
+    .antenna.a2 { animation-name: sway-b; animation-duration: 3.1s; }
+    @keyframes sway-a { 0%, 100% { transform: rotate(0); } 50% { transform: rotate(-3deg); } }
+    @keyframes sway-b { 0%, 100% { transform: rotate(0); } 50% { transform: rotate(3deg); } }
+    .dress.happy .antenna.a1 { animation: wiggle-a .8s ease-in-out; }
+    .dress.happy .antenna.a2 { animation: wiggle-b .8s ease-in-out; }
+    @keyframes wiggle-a { 0%, 100% { transform: rotate(0); } 18% { transform: rotate(-8deg); } 42% { transform: rotate(6deg); } 66% { transform: rotate(-3.5deg); } 84% { transform: rotate(1.5deg); } }
+    @keyframes wiggle-b { 0%, 100% { transform: rotate(0); } 18% { transform: rotate(8deg); } 42% { transform: rotate(-6deg); } 66% { transform: rotate(3.5deg); } 84% { transform: rotate(-1.5deg); } }
+
+    /* your wardrobe cards: tap one to put it on, tap it again to take it off */
+    .wcard {
+      position: absolute;
+      left:   calc(var(--x) * var(--px));
+      top:    calc(var(--y) * var(--px));
+      width:  calc(var(--w) * var(--px));
+      height: calc(var(--h) * var(--px));
+      border-radius: calc(26 * var(--px));
+      touch-action: manipulation;
+    }
+    .wcard::before {   /* pressed */
+      content: '';
+      position: absolute;
+      inset: calc(4 * var(--px));
+      border-radius: calc(22 * var(--px));
+      background: rgb(255 255 255 / 0);
+      transition: background .1s;
+    }
+    .wcard:active::before { background: rgb(255 255 255 / .3); }
+    .wcard::after {    /* worn: a yellow glow round the card */
+      content: '';
+      position: absolute;
+      inset: calc(3 * var(--px));
+      border-radius: calc(24 * var(--px));
+      pointer-events: none;
+      opacity: 0;
+      box-shadow: 0 0 0 calc(6 * var(--px)) #fdd45e, 0 0 calc(24 * var(--px)) rgb(253 212 94 / .95);
+      transition: opacity .2s;
+    }
+    .wcard.on::after { opacity: 1; }
+    .wcard .tick {     /* and a green tick in its corner */
+      position: absolute;
+      right: calc(-8 * var(--px));
+      top: calc(-10 * var(--px));
+      width: calc(40 * var(--px));
+      height: calc(40 * var(--px));
+      border-radius: 50%;
+      background: #34b25a;
+      box-shadow: 0 0 0 calc(4 * var(--px)) #fff, 0 calc(4 * var(--px)) calc(10 * var(--px)) rgb(36 75 131 / .25);
+      display: grid;
+      place-items: center;
+      transform: scale(0);
+      transition: transform .25s cubic-bezier(.3, 1.6, .5, 1);
+    }
+    .wcard .tick svg { width: 64%; height: 64%; }
+    .wcard.on .tick { transform: scale(1); }
+
+    /* little yellow sparks, like the ones in your pictures, when something lands */
+    .burst {
+      position: absolute;
+      left: calc(var(--x) * var(--px));
+      top: calc(var(--y) * var(--px));
+      width: 0;
+      height: 0;
+      pointer-events: none;
+    }
+    .burst i {
+      position: absolute;
+      left: calc(-10 * var(--px));
+      top: calc(-4 * var(--px));
+      width: calc(20 * var(--px));
+      height: calc(8 * var(--px));
+      border-radius: 99px;
+      background: #fdd45e;
+      box-shadow: 0 0 0 calc(2 * var(--px)) #fff;
+      opacity: 0;
+      animation: burst .6s ease-out both;
+    }
+    @keyframes burst {
+      0% { opacity: 1; transform: rotate(var(--a)) translateX(calc(var(--r) * .75 * var(--px))) scaleX(.3); }
+      60% { opacity: 1; }
+      100% { opacity: 0; transform: rotate(var(--a)) translateX(calc(var(--r) * 1.3 * var(--px))) scaleX(1); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .antenna, .dress.happy .antenna { animation: none !important; }
+      .burst { display: none; }
+    }
+
     /* ---------- Phone turned sideways ---------- */
     .rotate {
       display: none;
@@ -1044,9 +1151,38 @@
   </section>
 
   <!-- My Profile -->
+  <!-- My Profile: tap a piece of clothing in the wardrobe to put it on your slug, tap it again to take it off.
+       The slug and every piece of clothing are cut from your My Profile picture. -->
   <section class="screen picture" id="profile" data-theme="#caf8da" style="--top:#caf8da; --bottom:#9ae4be">
-    <div class="stage" style="--iw:1024; --ih:1366">
+    <div class="stage dress" id="dress" style="--iw:1024; --ih:1366">
       <img class="pic" src="profile.png" width="1024" height="1366" alt="My Profile">
+
+      <!-- the slug, from the back to the front -->
+      <img class="layer" src="wear-fill-antennae.png" alt="" style="--x:386; --y:347; --w:248; --h:126">
+      <img class="layer wear" data-piece="backpack" src="wear-backpack.png" alt="" style="--x:353; --y:485.9; --w:110; --h:124.3">
+      <img class="layer" src="wear-slug.png" alt="" style="--x:350; --y:421; --w:320; --h:307">
+      <img class="layer wear" data-piece="raincoat" src="wear-raincoat.png" alt="" style="--x:484.4; --y:546; --w:155.2; --h:168.2">
+      <img class="layer wear" data-piece="doctor" src="wear-doctor.png" alt="" style="--x:483.1; --y:552; --w:157.8; --h:164.6">
+      <img class="layer wear" data-piece="overalls" src="wear-overalls.png" alt="" style="--x:501.6; --y:582; --w:124.7; --h:120.3">
+      <img class="layer wear" data-piece="sporty" src="wear-sporty.png" alt="" style="--x:484.6; --y:547; --w:154.8; --h:166.1">
+      <img class="layer shade" data-piece="raincoat" src="wear-shade-raincoat.png" alt="" style="--x:507; --y:584; --w:105; --h:25">
+      <img class="layer shade" data-piece="doctor" src="wear-shade-doctor.png" alt="" style="--x:502; --y:582; --w:117; --h:27">
+      <img class="layer shade" data-piece="overalls" src="wear-shade-overalls.png" alt="" style="--x:518; --y:588; --w:88; --h:21">
+      <img class="layer shade" data-piece="sporty" src="wear-shade-sporty.png" alt="" style="--x:505; --y:585; --w:110; --h:24">
+      <img class="layer" src="wear-head.png" alt="" style="--x:418; --y:421; --w:234; --h:176">
+      <img class="layer antenna a1" src="wear-antenna-1.png" alt="" style="--x:395; --y:391; --w:75; --h:73; --ox:56.6; --oy:55.1">
+      <img class="layer antenna a2" src="wear-antenna-2.png" alt="" style="--x:552; --y:356; --w:72; --h:85; --ox:18.6; --oy:71">
+      <img class="layer wear" data-piece="explorer-hat" src="wear-explorer-hat.png" alt="" style="--x:443.2; --y:376.3; --w:157.6; --h:93.7">
+      <img class="layer wear" data-piece="straw-hat" src="wear-straw-hat.png" alt="" style="--x:449.8; --y:388; --w:148.5; --h:78">
+
+      <!-- your six wardrobe cards -->
+      <button class="wcard" data-item="explorer" aria-label="Explorer hat" aria-pressed="false" style="--x:121; --y:878; --w:135; --h:234"><span class="tick" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="#fff" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button>
+      <button class="wcard" data-item="raincoat" aria-label="Raincoat" aria-pressed="false" style="--x:263; --y:878; --w:131; --h:234"><span class="tick" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="#fff" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button>
+      <button class="wcard" data-item="backpack" aria-label="Backpack" aria-pressed="false" style="--x:400; --y:878; --w:129; --h:234"><span class="tick" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="#fff" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button>
+      <button class="wcard" data-item="doctor" aria-label="Doctor outfit" aria-pressed="false" style="--x:536; --y:878; --w:134; --h:234"><span class="tick" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="#fff" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button>
+      <button class="wcard" data-item="farmer" aria-label="Farmer outfit" aria-pressed="false" style="--x:677; --y:878; --w:133; --h:234"><span class="tick" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="#fff" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button>
+      <button class="wcard" data-item="sporty" aria-label="Sporty outfit" aria-pressed="false" style="--x:816; --y:878; --w:133; --h:234"><span class="tick" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="#fff" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button>
+
       <button class="hot" data-go="settings" aria-label="Parental controls" style="--x:869; --y:19;   --w:145; --h:145; --r:73"></button>
       <button class="hot" data-go="map"      aria-label="Save"              style="--x:344; --y:1175; --w:350; --h:143; --r:72"></button>
     </div>
@@ -2006,6 +2142,137 @@
     document.addEventListener('visibilitychange', () => {
       if (document.hidden && onLeave[current]) onLeave[current]();
     });
+
+    // ---------- My Profile: dress your slug ----------
+    // Each wardrobe card puts on one thing. Things that go in the same place swap:
+    // one hat, one coat or outfit, one backpack. The farmer outfit is a hat and overalls together.
+    const CLOTHES = {
+      explorer: { places: ['head'], pieces: ['explorer-hat'] },
+      raincoat: { places: ['body'], pieces: ['raincoat'] },
+      backpack: { places: ['back'], pieces: ['backpack'] },
+      doctor:   { places: ['body'], pieces: ['doctor'] },
+      farmer:   { places: ['head', 'body'], pieces: ['straw-hat', 'overalls'] },
+      sporty:   { places: ['body'], pieces: ['sporty'] },
+    };
+    // Where each piece sits on its card, and where it goes on the slug (x, y, width, height in picture pixels)
+    const PIECES = {
+      'explorer-hat': { card: [133, 919, 111, 66],  slug: [443.2, 376.3, 157.6, 93.7] },
+      'raincoat':     { card: [276, 916, 107, 116], slug: [484.4, 546, 155.2, 168.2] },
+      'backpack':     { card: [415, 913, 100, 113], slug: [353, 485.9, 110, 124.3] },
+      'doctor':       { card: [545, 916, 116, 121], slug: [483.1, 552, 157.8, 164.6] },
+      'straw-hat':    { card: [695, 900, 99, 52],   slug: [449.8, 388, 148.5, 78] },
+      'overalls':     { card: [701, 954, 86, 83],   slug: [501.6, 582, 124.7, 120.3] },
+      'sporty':       { card: [829, 914, 109, 117], slug: [484.6, 547, 154.8, 166.1] },
+    };
+    const OUTFIT_KEY = 'slug-outfit';
+    const dress = document.getElementById('dress');
+    const wcards = {};
+    dress.querySelectorAll('.wcard').forEach(b => { wcards[b.dataset.item] = b; });
+    const pieceEl = name => dress.querySelector(`.wear[data-piece="${name}"]`);
+    const shadeEl = name => dress.querySelector(`.shade[data-piece="${name}"]`);
+    const worn = new Set();
+
+    function saveOutfit() {
+      try { localStorage.setItem(OUTFIT_KEY, JSON.stringify([...worn])); } catch (e) { /* the outfit still stays while the app is open */ }
+    }
+    function loadOutfit() {
+      try { return JSON.parse(localStorage.getItem(OUTFIT_KEY) || '[]').filter(id => CLOTHES[id]); } catch (e) { return []; }
+    }
+    function markCard(id) {
+      const on = worn.has(id);
+      wcards[id].classList.toggle('on', on);
+      wcards[id].setAttribute('aria-pressed', on);
+    }
+
+    // A piece flies from its card to the slug (or back), in a little arc
+    function flyTransform(box, to, k) {
+      return `translate(${(box[0] - to[0]) * k}px, ${(box[1] - to[1]) * k}px) scale(${box[2] / to[2]})`;
+    }
+    function arcPoint(from, to, lift) {
+      const s = (from[2] / to[2] + 1) / 2 * 1.06;
+      const w = to[2] * s, h = to[3] * s;
+      const cx = (from[0] + from[2] / 2 + to[0] + to[2] / 2) / 2, cy = (from[1] + from[3] / 2 + to[1] + to[3] / 2) / 2 - lift;
+      return [cx - w / 2, cy - h / 2, w, h];
+    }
+    function popTransform(to, k, s) {
+      return `translate(${to[2] * k * (1 - s) / 2}px, ${to[3] * k * (1 - s) / 2}px) scale(${s})`;
+    }
+    function stopFlying(el) { el.getAnimations().forEach(a => a.cancel()); }
+
+    function putOnPiece(name, animate, landed) {
+      const el = pieceEl(name), { card, slug } = PIECES[name], shade = shadeEl(name);
+      stopFlying(el);
+      el.classList.add('on');
+      if (!animate) { if (shade) shade.classList.add('on'); return; }
+      const k = dress.getBoundingClientRect().width / 1024;
+      const fly = el.animate([
+        { transform: flyTransform(card, slug, k), offset: 0, easing: 'ease-out' },
+        { transform: flyTransform(arcPoint(card, slug, 70), slug, k), offset: .55, easing: 'ease-in' },
+        { transform: popTransform(slug, k, 1.07), offset: .85, easing: 'ease-out' },
+        { transform: 'none', offset: 1 },
+      ], { duration: 560 });
+      fly.onfinish = () => { if (shade) shade.classList.add('on'); landed(); };
+    }
+    function takeOffPiece(name, animate) {
+      const el = pieceEl(name), { card, slug } = PIECES[name], shade = shadeEl(name);
+      stopFlying(el);
+      if (shade) shade.classList.remove('on');
+      if (!animate) { el.classList.remove('on'); return; }
+      const k = dress.getBoundingClientRect().width / 1024;
+      const fly = el.animate([
+        { transform: 'none', opacity: 1, offset: 0, easing: 'ease-out' },
+        { transform: flyTransform(arcPoint(card, slug, 60), slug, k), opacity: 1, offset: .45, easing: 'ease-in' },
+        { transform: flyTransform(card, slug, k), opacity: 0, offset: 1 },
+      ], { duration: 420, fill: 'forwards' });
+      fly.onfinish = () => { el.classList.remove('on'); fly.cancel(); };
+    }
+
+    // Yellow sparks round a piece that has just landed, and a happy wiggle of the antennae
+    function cheer(box) {
+      const [x, y, w, h] = box;
+      const b = document.createElement('div');
+      b.className = 'burst';
+      b.style.cssText = `--x:${x + w / 2}; --y:${y + h / 2}; --r:${Math.max(w, h) / 2 + 6}`;
+      for (let i = 0; i < 7; i++) {
+        const s = document.createElement('i');
+        s.style.setProperty('--a', `${i * 360 / 7 - 90}deg`);
+        b.appendChild(s);
+      }
+      dress.appendChild(b);
+      setTimeout(() => b.remove(), 700);
+      dress.classList.remove('happy');
+      void dress.offsetWidth;
+      dress.classList.add('happy');
+    }
+    dress.addEventListener('animationend', e => { if (e.animationName === 'wiggle-b') dress.classList.remove('happy'); });
+
+    function takeOff(id, animate) {
+      worn.delete(id);
+      CLOTHES[id].pieces.forEach(p => takeOffPiece(p, animate));
+      markCard(id);
+    }
+    function putOn(id, animate) {
+      // whatever is already in the same place comes off first
+      [...worn].forEach(other => {
+        if (CLOTHES[other].places.some(pl => CLOTHES[id].places.includes(pl))) takeOff(other, animate);
+      });
+      worn.add(id);
+      let cheered = false;
+      CLOTHES[id].pieces.forEach(p => putOnPiece(p, animate, () => {
+        if (!cheered) { cheered = true; cheer(PIECES[CLOTHES[id].pieces[0]].slug); }
+      }));
+      markCard(id);
+    }
+    Object.entries(wcards).forEach(([id, btn]) => {
+      btn.addEventListener('click', () => {
+        const animate = !calm.matches;
+        if (worn.has(id)) takeOff(id, animate); else putOn(id, animate);
+        saveOutfit();
+      });
+    });
+    dress.addEventListener('contextmenu', e => e.preventDefault());
+    // the outfit from last time
+    loadOutfit().forEach(id => putOn(id, false));
 
     // Stop a pinch from zooming the whole app
     for (const type of ['gesturestart', 'gesturechange']) {
