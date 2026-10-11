@@ -2,9 +2,9 @@
 // When there is internet it asks GitHub for the newest files first,
 // so an update you upload shows up the next time you open the app.
 
-const CACHE = 'slug-v13';
+const CACHE = 'slug-v15';
 const FILES = [
-  './', 'index.html', 'manifest.json', 'app-icon-180.png', 'app-icon-192.png', 'app-icon-512.png', 'nunito.woff2', 'splash.png', 'age.png', 'map.png',
+  './', 'index.html', 'manifest.json', 'app-icon-180.png', 'app-icon-192.png', 'app-icon-512.png', 'apple-touch-icon.png', 'slug-icon.png', 'icon.png', 'nunito.woff2', 'splash.png', 'age.png', 'map.png',
   'loading.png', 'ring.webp',
   // map
   'fish.png', 'map-amb.png', 'map-bike.png', 'map-boat.png', 'map-bus.png', 'map-butterfly.png',
@@ -19,10 +19,7 @@ const FILES = [
   'simon-all.png', 'simon-blue.png', 'simon-board.png', 'simon-green.png', 'simon-map-button.png',
   'simon-red.png', 'simon-yellow.png',
   // battle
-  'battle-board.png', 'crosshair.png', 'duck-cover-1-1.png', 'duck-cover-1-2.png', 'duck-cover-1-3.png',
-  'duck-cover-1-4.png', 'duck-cover-2-1.png', 'duck-cover-2-2.png', 'duck-cover-2-3.png',
-  'duck-cover-3-1.png', 'duck-cover-3-2.png', 'duck-cover-4-1.png', 'duck-cover-4-2.png',
-  'duck-cover-5-1.png', 'duck-cover-5-2.png',
+  'battle.webp',
   // sudoku
   'bin-blue.png', 'bin-green.png', 'bin-red.png', 'bin-yellow.png', 'sudoku-board.png',
   // my profile
@@ -43,11 +40,22 @@ self.addEventListener('install', event => {
 });
 
 self.addEventListener('activate', event => {
-  event.waitUntil(
-    caches.keys()
-      .then(keys => Promise.all(keys.filter(key => key !== CACHE).map(key => caches.delete(key))))
-      .then(() => self.clients.claim())
-  );
+  const ready = (async () => {
+    const keys = await caches.keys();
+    const updated = keys.some(key => key !== CACHE);          // an older version of the app was saved here
+    await Promise.all(keys.filter(key => key !== CACHE).map(key => caches.delete(key)));
+    await self.clients.claim();
+    return updated;
+  })();
+  event.waitUntil(ready);
+  // a page that was opened before the update may still be the old one: once this version is ready,
+  // open it again so it is the new one (not waited for, so the page's own loading isn't held up)
+  ready.then(async updated => {
+    if (!updated) return;
+    for (const page of await self.clients.matchAll({ type: 'window' })) {
+      page.navigate(page.url).catch(() => { /* it shows the new version next time instead */ });
+    }
+  });
 });
 
 self.addEventListener('fetch', event => {
@@ -55,6 +63,14 @@ self.addEventListener('fetch', event => {
   if (request.method !== 'GET' || new URL(request.url).origin !== self.location.origin) return;
   event.respondWith(newestFirst(request));
 });
+
+// The page and the app's settings file are never taken from the browser's short-term store without asking
+// GitHub whether they changed (a quick "has this changed?" question), so a new upload shows up straight away.
+function checkWithGitHub(request) {
+  const path = new URL(request.url).pathname;
+  if (request.mode !== 'navigate' && !/\.(html|json)$/.test(path) && !path.endsWith('/')) return request;
+  try { return new Request(request, { cache: 'no-cache' }); } catch (err) { return request; }
+}
 
 // Internet first. Use the saved copy when offline, or when the signal is so weak
 // that nothing has arrived after 4 seconds.
@@ -69,7 +85,7 @@ async function newestFirst(request) {
     const answer = response => {
       if (response && !answered) { answered = true; resolve(response); }
     };
-    fetch(request)
+    fetch(checkWithGitHub(request))
       .then(response => {
         if (response.ok) cache.put(request, response.clone());
         answer(response);
