@@ -2,9 +2,9 @@
 // When there is internet it asks GitHub for the newest files first,
 // so an update you upload shows up the next time you open the app.
 
-const CACHE = 'slug-v11';
+const CACHE = 'slug-v13';
 const FILES = [
-  './', 'index.html', 'manifest.json', 'slug-icon.png', 'nunito.woff2', 'splash.png', 'age.png', 'map.png',
+  './', 'index.html', 'manifest.json', 'app-icon-180.png', 'app-icon-192.png', 'app-icon-512.png', 'nunito.woff2', 'splash.png', 'age.png', 'map.png',
   'loading.png', 'ring.webp',
   // map
   'fish.png', 'map-amb.png', 'map-bike.png', 'map-boat.png', 'map-bus.png', 'map-butterfly.png',

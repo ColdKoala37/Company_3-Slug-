@@ -12,8 +12,9 @@
   <meta name="color-scheme" content="light">
   <meta name="robots" content="noindex">
   <link rel="manifest" href="manifest.json">
-  <link rel="apple-touch-icon" href="slug-icon.png">
-  <link rel="icon" type="image/png" href="slug-icon.png">
+  <!-- Home Screen icon: the slug from your first screen -->
+  <link rel="apple-touch-icon" sizes="180x180" href="app-icon-180.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="app-icon-192.png">
 
   <style>
     :root { --mint: #ccfedf; }
@@ -1323,31 +1324,73 @@
     const life = document.getElementById('life');
     const calm = matchMedia('(prefers-reduced-motion: reduce)');
 
-    function makeRoute(r, reverse) {
-      const n = r.pts.length / 2, xs = new Float32Array(n), ys = new Float32Array(n), hid = new Uint8Array(n);
+    // Each vehicle drives along its own smooth line: the middle of your road, moved over to its own side
+    // and rounded off at the corners, so it glides round a bend instead of hopping from point to point.
+    function makeLine(r, reverse, lane) {
+      const n = r.pts.length / 2, loop = r.loop;
+      const xs = new Float64Array(n), ys = new Float64Array(n), hid = new Uint8Array(n);
       for (let i = 0; i < n; i++) { xs[i] = r.pts[2 * i]; ys[i] = r.pts[2 * i + 1]; }
       r.hidden.forEach(([a, b]) => hid.fill(1, a, b));
       if (reverse) { xs.reverse(); ys.reverse(); hid.reverse(); }
-      const s = new Float32Array(n);
-      for (let i = 1; i < n; i++) s[i] = s[i - 1] + Math.hypot(xs[i] - xs[i - 1], ys[i] - ys[i - 1]);
-      const len = r.loop ? s[n - 1] + Math.hypot(xs[0] - xs[n - 1], ys[0] - ys[n - 1]) : s[n - 1];
-      // how sharp the road bends at each point, so vehicles slow down in curves
-      const bend = new Float32Array(n), k = 3;
+      const at = i => (loop ? ((i % n) + n) % n : Math.max(0, Math.min(n - 1, i)));
+      const dir = (X, Y, i, k) => {
+        const hx = X[at(i + k)] - X[at(i - k)], hy = Y[at(i + k)] - Y[at(i - k)], h = Math.hypot(hx, hy) || 1;
+        return [hx / h, hy / h];
+      };
+      // over to its own side of the road, using the road's direction over 64 px so the shift turns gradually
+      let ox = new Float64Array(n), oy = new Float64Array(n);
       for (let i = 0; i < n; i++) {
-        const a = r.loop ? (i - k + n) % n : Math.max(0, i - k), b = r.loop ? (i + k) % n : Math.min(n - 1, i + k);
-        const a1 = Math.atan2(ys[i] - ys[a], xs[i] - xs[a]), a2 = Math.atan2(ys[b] - ys[i], xs[b] - xs[i]);
-        let t = Math.abs(a2 - a1); if (t > Math.PI) t = 2 * Math.PI - t;
-        bend[i] = (a === i || b === i) ? 0 : t;
+        const [hx, hy] = dir(xs, ys, i, 4);
+        ox[i] = xs[i] - hy * lane; oy[i] = ys[i] + hx * lane;
       }
-      return { xs, ys, s, n, len, loop: r.loop, hid, bend };
+      // round the corners off
+      for (let pass = 0; pass < 4; pass++) {
+        const nx = new Float64Array(n), ny = new Float64Array(n);
+        for (let i = 0; i < n; i++) {
+          if (!loop && (i < 2 || i > n - 3)) { nx[i] = ox[i]; ny[i] = oy[i]; continue; }
+          nx[i] = (ox[at(i - 2)] + 2 * ox[at(i - 1)] + 3 * ox[i] + 2 * ox[at(i + 1)] + ox[at(i + 2)]) / 9;
+          ny[i] = (oy[at(i - 2)] + 2 * oy[at(i - 1)] + 3 * oy[i] + 2 * oy[at(i + 1)] + oy[at(i + 2)]) / 9;
+        }
+        ox = nx; oy = ny;
+      }
+      const s = new Float64Array(n);
+      for (let i = 1; i < n; i++) s[i] = s[i - 1] + Math.hypot(ox[i] - ox[i - 1], oy[i] - oy[i - 1]);
+      const len = loop ? s[n - 1] + Math.hypot(ox[0] - ox[n - 1], oy[0] - oy[n - 1]) : s[n - 1];
+      // at every point: its direction, whether it is going left or right (judged over ~100 px), and how much it bends
+      const hx = new Float64Array(n), hy = new Float64Array(n), side = new Float64Array(n), raw = new Float64Array(n), bend = new Float64Array(n);
+      for (let i = 0; i < n; i++) {
+        [hx[i], hy[i]] = dir(ox, oy, i, 1);
+        side[i] = dir(ox, oy, i, 6)[0];
+        const [ax, ay] = dir(ox, oy, i - 3, 2), [bx, by] = dir(ox, oy, i + 3, 2);
+        raw[i] = Math.acos(Math.max(-1, Math.min(1, ax * bx + ay * by)));
+      }
+      for (let i = 0; i < n; i++) {
+        let sum = 0; for (let k = -3; k <= 3; k++) sum += raw[at(i + k)];
+        bend[i] = sum / 7;
+      }
+      // well behind a label (not just at its edge): there it may hurry a little, out of sight
+      const deep = new Float64Array(n), hide = new Float64Array(n);
+      for (let i = 0; i < n; i++) {
+        let all = 1; for (let k = -8; k <= 8; k++) if (!hid[at(i + k)]) { all = 0; break; }
+        deep[i] = all;
+      }
+      for (let i = 0; i < n; i++) {
+        let sum = 0; for (let k = -4; k <= 4; k++) sum += deep[at(i + k)];
+        hide[i] = sum / 9;
+      }
+      return { xs: ox, ys: oy, s, n, len, loop, hid, hide, hx, hy, side, bend };
     }
-    const routes = { bus: makeRoute(ROUTES.bus), car: makeRoute(ROUTES.bus, true), bike: makeRoute(ROUTES.bike), amb: makeRoute(ROUTES.amb) };
+    const lines = {};
+    VEHICLES.forEach(c => {
+      const r = c.route === 'car' ? ROUTES.bus : ROUTES[c.route];
+      lines[c.id] = makeLine(r, c.route === 'car', c.lane);
+    });
     function nearest(rt, x, y) {
       let best = 0, bd = Infinity;
       for (let i = 0; i < rt.n; i++) { const d = (rt.xs[i] - x) ** 2 + (rt.ys[i] - y) ** 2; if (d < bd) { bd = d; best = i; } }
       return best;
     }
-    // position and direction at a distance along the road
+    // where a vehicle is at a distance along its line; everything is blended smoothly between points
     function pointAt(rt, d, v) {
       if (rt.loop) d = ((d % rt.len) + rt.len) % rt.len; else d = Math.max(0, Math.min(rt.len - .01, d));
       let i = v.i || 0;
@@ -1357,32 +1400,39 @@
       const j = i + 1 < rt.n ? i + 1 : 0;
       const segEnd = i + 1 < rt.n ? rt.s[i + 1] : rt.len;
       const t = (d - rt.s[i]) / Math.max(.001, segEnd - rt.s[i]);
-      const x = rt.xs[i] + (rt.xs[j] - rt.xs[i]) * t, y = rt.ys[i] + (rt.ys[j] - rt.ys[i]) * t;
-      // heading smoothed over a few points
-      const a = rt.loop ? (i - 2 + rt.n) % rt.n : Math.max(0, i - 2), b = rt.loop ? (i + 3) % rt.n : Math.min(rt.n - 1, i + 3);
-      let hx = rt.xs[b] - rt.xs[a], hy = rt.ys[b] - rt.ys[a];
-      const h = Math.hypot(hx, hy) || 1; hx /= h; hy /= h;
-      return { x, y, hx, hy, i };
+      const mix = a => a[i] + (a[j] - a[i]) * t;
+      // a smooth curve through the points (not straight lines between them), so there is no tiny kink at each point
+      const h0 = rt.loop ? (i - 1 + rt.n) % rt.n : Math.max(0, i - 1), j2 = rt.loop ? (j + 1) % rt.n : Math.min(rt.n - 1, j + 1);
+      const curve = a => {
+        const p0 = a[h0], p1 = a[i], p2 = a[j], p3 = a[j2], t2 = t * t, t3 = t2 * t;
+        return .5 * (2 * p1 + (p2 - p0) * t + (2 * p0 - 5 * p1 + 4 * p2 - p3) * t2 + (3 * p1 - p0 - 3 * p2 + p3) * t3);
+      };
+      let hx = mix(rt.hx), hy = mix(rt.hy);
+      const h = Math.hypot(hx, hy) || 1;
+      return { x: curve(rt.xs), y: curve(rt.ys), hx: hx / h, hy: hy / h, side: mix(rt.side), bend: mix(rt.bend), hide: mix(rt.hide), i };
     }
     const movers = VEHICLES.map(c => {
-      const rt = routes[c.route], el = document.getElementById(c.id);
+      const rt = lines[c.id], el = document.getElementById(c.id);
       const at = c.from || c.startNear;
       const i0 = nearest(rt, at[0], at[1]);
-      const v = { c, rt, el, d: rt.s[i0], v: 0, f: 1, i: 0, x: at[0], y: at[1], hx: 1, hy: 0, wait: 0, blend: c.from ? 0 : 1, stopS: null, stopped: false, rest: 0 };
+      const facing = (rt.side[i0] < 0 ? -1 : 1) * c.face;
+      const v = { c, rt, el, d: rt.s[i0], v: 0, f: facing, facing, flipFrom: facing, flippedAt: -1e9, i: 0, x: at[0], y: at[1], hx: 1, hy: 0,
+                  wait: 0, blend: c.from ? 0 : 1, stopS: null, stopped: false, rest: 0 };
       if (c.stop) v.stopS = rt.s[nearest(rt, c.stop[0], c.stop[1])];
       return v;
     });
     function place(v, now) {
       const bob = Math.sin(now / 1000 * (v.c.bike ? 9 : 6) + v.c.size) * v.c.bob * Math.min(1, v.v / 30);
-      v.el.style.transform = `translate3d(${v.x.toFixed(1)}px, ${(v.y + bob).toFixed(1)}px, 0) scaleX(${v.f.toFixed(3)})`;
+      v.el.style.transform = `translate3d(${v.x.toFixed(2)}px, ${(v.y + bob).toFixed(2)}px, 0) scaleX(${v.f.toFixed(3)})`;
       v.el.style.zIndex = Math.round(v.y);
     }
     movers.forEach(v => place(v, 0));
+    const smooth01 = t => t <= 0 ? 0 : t >= 1 ? 1 : t * t * (3 - 2 * t);
 
     let lifeOn = false, lifeLast = 0, lifeFrame = 0, startedAt = 0;
     function lifeStep(now) {
       if (!lifeOn) return;
-      const dt = Math.min(.05, (now - lifeLast) / 1000 || 0);
+      const dt = Math.min(.1, (now - lifeLast) / 1000 || 0);   // a slow frame doesn't make them lurch
       lifeLast = now;
       for (const v of movers) {
         const { c, rt } = v;
@@ -1391,15 +1441,15 @@
           v.rest = 0; v.d = 0; v.i = 0; v.v = c.speed * .8;
         }
         const p = pointAt(rt, v.d, v);
-        // how fast it would like to go here
-        let want = c.speed * (1 - .5 * Math.min(1, rt.bend[p.i] / .55));
-        if (rt.hid[p.i]) want *= 2.2;                    // nobody sees it behind a label, so it hurries
+        // how fast it would like to go here: a little slower round the bends
+        let want = c.speed * (1 - .45 * smooth01(p.bend / .6));
+        want *= 1 + .7 * p.hide;                         // nobody sees it behind a label, so it hurries a little
         if (now - startedAt < 900) want = 0;             // everything starts off still, just like your map
         else if (!life.classList.contains('go')) life.classList.add('go');
         if (v.stopS !== null) {                          // the bus stops at the bus stop
           let ahead = v.stopS - v.d; if (ahead < -rt.len / 2) ahead += rt.len; if (ahead > rt.len / 2) ahead -= rt.len;
           if (ahead > 0 && ahead < 110) want = Math.min(want, 8 + c.speed * ahead / 110);
-          if (ahead <= 0 && ahead > -6 && !v.stopped) { v.stopped = true; v.wait = now + c.stop[2]; v.v = 0; }
+          if (ahead <= 0 && ahead > -6 && !v.stopped) { v.stopped = true; v.wait = now + c.stop[2]; }
           if (ahead < -40) v.stopped = false;
           if (v.wait > now) want = 0;
         }
@@ -1407,31 +1457,29 @@
         if (!c.bike) for (const o of movers) {
           if (o === v || o.c.bike || o.rest) continue;
           const dx = o.x - v.x, dy = o.y - v.y;
-          const ahead = dx * v.hx + dy * v.hy, side = Math.abs(dx * v.hy - dy * v.hx);
-          if (ahead > 0 && side < 26 && o.hx * v.hx + o.hy * v.hy > .3) {
+          const ahead = dx * v.hx + dy * v.hy, sideways = Math.abs(dx * v.hy - dy * v.hx);
+          if (ahead > 0 && sideways < 24 && o.hx * v.hx + o.hy * v.hy > .3) {
             const gap = ahead - (c.size + o.c.size) / 2;
-            if (gap < 60) want = Math.min(want, Math.max(0, o.v * (gap / 60)));
+            if (gap < 70) want = Math.min(want, o.v * smooth01(gap / 70));
           }
         }
-        v.v += Math.max(-260 * dt, Math.min(90 * dt, want - v.v));
+        v.v += Math.max(-200 * dt, Math.min(90 * dt, want - v.v));
         v.d += v.v * dt;
         if (!rt.loop && v.d >= rt.len) { v.rest = now + c.rest; v.d = rt.len - .01; }
         if (rt.loop) v.d = ((v.d % rt.len) + rt.len) % rt.len;
         const q = pointAt(rt, v.d, v);
-        // keep to the right-hand side of the road
-        let x = q.x - q.hy * c.lane, y = q.y + q.hx * c.lane;
-        if (v.blend < 1) {                              // glide from where it is parked in your map onto the road
+        let x = q.x, y = q.y;
+        if (v.blend < 1) {                              // glide from where it is parked in your map onto its line
           v.blend = Math.min(1, v.blend + dt / 1.6);
-          const e = v.blend * v.blend * (3 - 2 * v.blend);
+          const e = smooth01(v.blend);
           x = c.from[0] + (x - c.from[0]) * e; y = c.from[1] + (y - c.from[1]) * e;
         }
         v.x = x; v.y = y; v.hx = q.hx; v.hy = q.hy;
-        // turn the picture round when it drives the other way
-        if (Math.abs(q.hx) > .3) {
-          const target = Math.sign(q.hx) * c.face;
-          v.f += (target - v.f) * Math.min(1, dt * 7);
-          if (Math.abs(v.f) < .08) v.f = Math.sign(target) * .08;
-        }
+        // turn the picture round only when it really drives the other way, never back and forth on a bend
+        const facing = q.side > .35 ? c.face : q.side < -.35 ? -c.face : v.facing;
+        if (facing !== v.facing && now - v.flippedAt > 1500) { v.flipFrom = v.f; v.facing = facing; v.flippedAt = now; }
+        const ft = Math.min(1, (now - v.flippedAt) / 420);
+        v.f = v.flipFrom + (v.facing - v.flipFrom) * (1 - Math.cos(Math.PI * ft)) / 2;
         place(v, now);
       }
       lifeFrame = requestAnimationFrame(lifeStep);
