@@ -837,6 +837,22 @@
       .burst { display: none; }
     }
 
+    /* ---------- Parental Controls: the Music switch works ---------- */
+    /* your switch, in three layers: the green track, the grey "off" track over it, and the knob that slides */
+    .switch:active { background: none; }
+    .switch img {
+      position: absolute;
+      left:   calc(26 * 100cqw / var(--iw));
+      top:    calc(17 * 100cqw / var(--iw));
+      width:  calc(112 * 100cqw / var(--iw));
+      height: calc(68 * 100cqw / var(--iw));
+      pointer-events: none;
+    }
+    .switch .off { opacity: 0; transition: opacity .2s; }
+    .switch .knob { transition: transform .22s cubic-bezier(.3, .7, .4, 1); }
+    .switch.is-off .off { opacity: 1; }
+    .switch.is-off .knob { transform: translateX(calc(-34.5 * 100cqw / var(--iw))); }
+
     /* ---------- Phone turned sideways ---------- */
     .rotate {
       display: none;
@@ -1117,6 +1133,12 @@
     <div class="stage" style="--iw:1086; --ih:1448">
       <img class="pic" src="settings.png" width="1086" height="1448" alt="Parental Controls">
       <button class="hot" data-go="back" aria-label="Back" style="--x:15; --y:19; --w:111; --h:115; --r:26"></button>
+      <!-- the Music switch: turns the background music off and on (and remembers it) -->
+      <button class="hot switch" id="music-switch" role="switch" aria-checked="true" aria-label="Music" style="--x:760; --y:915; --w:155; --h:103; --r:30">
+        <img src="switch-track.png" alt="">
+        <img class="off" src="switch-off.png" alt="">
+        <img class="knob" src="switch-knob.png" alt="">
+      </button>
     </div>
   </section>
 
@@ -1153,6 +1175,7 @@
       current = id;
       if (onEnter[id]) onEnter[id]();
       themeColor.setAttribute('content', next.dataset.theme);
+      updateMusic();
     }
 
     function go(target, withLoading) {
@@ -1168,6 +1191,101 @@
       const button = e.target.closest('[data-go]');
       if (button) go(button.dataset.go, button.hasAttribute('data-loading'));
     });
+
+    // ---------- Background music ----------
+    // Your calm nature loop plays on the map, in the games, on My Profile and in Parental Controls,
+    // and stays quiet on the start screen and the age question. It loops without a gap, fades in and out,
+    // stops while the app is in the background, and the Music switch in Parental Controls turns it off.
+    const MUSIC = { file: 'music.mp3', from: 1, length: 96, volume: 0.4 };  // the loop is 1 s to 97 s of the file
+    const QUIET = ['splash', 'age'];
+    const MUSIC_KEY = 'slug-music';
+    let musicOn = true;
+    try { musicOn = localStorage.getItem(MUSIC_KEY) !== 'off'; } catch (e) { /* stays on */ }
+    let actx = null, musicVolume = null, song = null, songLoad = null, restTimer = 0;
+
+    const wantMusic = () => musicOn && !QUIET.includes(current) && !document.hidden;
+    const settle = p => { if (p && p.catch) p.catch(() => {}); };   // older iPads answer some of these without a promise
+
+    // Tablets and phones only allow sound after a tap, so the first tap switches the sound on
+    function startAudio() {
+      if (actx) return;
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return;
+      actx = new AC();
+      musicVolume = actx.createGain();
+      musicVolume.gain.value = 0;
+      musicVolume.connect(actx.destination);
+      const blip = actx.createBufferSource();   // older iPads and iPhones need a (silent) sound inside that tap
+      blip.buffer = actx.createBuffer(1, 1, 22050);
+      blip.connect(actx.destination);
+      blip.start(0);
+      loadSong().catch(() => {});
+    }
+    function loadSong() {
+      if (!songLoad) {
+        songLoad = fetch(MUSIC.file)
+          .then(r => { if (!r.ok) throw new Error(r.status); return r.arrayBuffer(); })
+          .then(data => new Promise((done, fail) => actx.decodeAudioData(data, done, fail)))
+          .catch(e => { songLoad = null; throw e; });
+      }
+      return songLoad;
+    }
+    function fadeMusic(level, seconds) {
+      const g = musicVolume.gain, now = actx.currentTime;
+      g.cancelScheduledValues(now);
+      g.setValueAtTime(g.value, now);
+      g.linearRampToValueAtTime(level, now + seconds);
+    }
+    function updateMusic() {
+      if (!actx) return;
+      clearTimeout(restTimer);
+      if (wantMusic()) {
+        if (actx.state !== 'running') settle(actx.resume && actx.resume());
+        loadSong().then(buffer => {
+          if (!wantMusic()) return;
+          if (!song) {
+            song = actx.createBufferSource();
+            song.buffer = buffer;
+            song.loop = true;
+            song.loopStart = MUSIC.from;
+            song.loopEnd = MUSIC.from + MUSIC.length;
+            song.connect(musicVolume);
+            song.start(0, MUSIC.from);
+          }
+          fadeMusic(MUSIC.volume, 1.5);
+        }).catch(() => { /* not downloaded yet: it tries again on the next screen */ });
+      } else if (document.hidden) {
+        // the app went to the background: quiet at once (and it fades in again when you come back)
+        musicVolume.gain.cancelScheduledValues(actx.currentTime);
+        musicVolume.gain.value = 0;
+        settle(actx.suspend && actx.suspend());
+      } else {
+        fadeMusic(0, 0.6);
+        restTimer = setTimeout(() => { if (!wantMusic()) settle(actx.suspend && actx.suspend()); }, 700);
+      }
+    }
+    // a tap switches the sound on, and wakes it up again after the app was in the background
+    for (const type of ['touchend', 'click', 'keydown']) {
+      document.addEventListener(type, () => {
+        startAudio();
+        if (actx && actx.state !== 'running' && wantMusic()) updateMusic();
+      }, true);
+    }
+    document.addEventListener('visibilitychange', updateMusic);
+
+    // the Music switch in Parental Controls
+    const musicSwitch = document.getElementById('music-switch');
+    function showMusicSwitch() {
+      musicSwitch.classList.toggle('is-off', !musicOn);
+      musicSwitch.setAttribute('aria-checked', String(musicOn));
+    }
+    musicSwitch.addEventListener('click', () => {
+      musicOn = !musicOn;
+      try { localStorage.setItem(MUSIC_KEY, musicOn ? 'on' : 'off'); } catch (e) { /* it still works until the app is closed */ }
+      showMusicSwitch();
+      updateMusic();
+    });
+    showMusicSwitch();
 
     // ---------- Map ----------
     // It opens centred on the Slug Says label and keeps the same spot in view when the screen size changes

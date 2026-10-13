@@ -2,7 +2,7 @@
 // When there is internet it asks GitHub for the newest files first,
 // so an update you upload shows up the next time you open the app.
 
-const CACHE = 'slug-v16';
+const CACHE = 'slug-v17';
 const FILES = [
   './', 'index.html', 'manifest.json', 'app-icon-180.png', 'app-icon-192.png', 'app-icon-512.png', 'apple-touch-icon.png', 'slug-icon.png', 'icon.png', 'nunito.woff2', 'splash.png', 'age.png', 'map.png',
   'loading.png', 'ring.webp',
@@ -28,7 +28,9 @@ const FILES = [
   'wear-straw-hat.png', 'wear-tie.png', 'wear-shade-tie.png', 'wear-propeller-cap.png', 'wear-propeller.png',
   'wear-propeller-hub.png',
   // parental controls
-  'settings.png'
+  'settings.png', 'switch-track.png', 'switch-off.png', 'switch-knob.png',
+  // background music
+  'music.mp3'
 ];
 
 self.addEventListener('install', event => {
